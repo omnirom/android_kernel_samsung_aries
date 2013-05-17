@@ -458,3 +458,9 @@ config SEC_HEADSET
 	help
 	  Provides support for detecting SEC 2 wire devices, such as wired
 	  headset.
+
+config ION_S5P
+	bool "Enable ION memory management"
+	depends on ION
+	help
+	  Provides support for ION memory.
