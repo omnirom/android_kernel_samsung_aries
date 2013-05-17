@@ -37,6 +37,7 @@
 #include <asm/mach/map.h>
 #include <asm/setup.h>
 #include <asm/mach-types.h>
+#include <asm/system.h>
 
 #include <mach/map.h>
 #include <mach/regs-clock.h>
@@ -47,9 +48,6 @@
 #include <mach/param.h>
 #include <mach/system.h>
 
-#ifdef CONFIG_SEC_HEADSET
-#include <mach/sec_jack.h>
-#endif
 #include <mach/voltages.h>
 #include <linux/usb/gadget.h>
 #include <linux/fsa9480.h>
@@ -102,6 +100,7 @@
 #include <linux/i2c/l3g4200d.h>
 #include <../../../drivers/input/misc/bma020.h>
 #include <../../../drivers/video/samsung/s3cfb.h>
+#include <linux/sec_jack.h>
 #include <linux/power/max17042_battery.h>
 #include <linux/switch.h>
 
@@ -134,7 +133,6 @@ EXPORT_SYMBOL(sec_get_param_value);
 #define KERNEL_REBOOT_MASK      0xFFFFFFFF
 #define REBOOT_MODE_FAST_BOOT		7
 
-
 #ifdef CONFIG_DHD_USE_STATIC_BUF
 
 #define PREALLOC_WLAN_SEC_NUM		4
@@ -158,7 +156,9 @@ struct wifi_mem_prealloc {
 
 #endif
 
-
+static DEFINE_SPINLOCK(mic_bias_lock);
+static bool wm8994_mic_bias;
+static bool jack_mic_bias;
 struct sec_battery_callbacks *callbacks;
 struct max17042_callbacks *max17042_cb;
 static enum cable_type_t set_cable_status;
@@ -2596,10 +2596,31 @@ static struct s3c_platform_jpeg jpeg_plat __initdata = {
 };
 #endif
 
+static void set_shared_mic_bias(void)
+{
+	gpio_set_value(GPIO_EAR_MICBIAS0_EN, wm8994_mic_bias || jack_mic_bias);
+	gpio_set_value(GPIO_EAR_MICBIAS_EN, wm8994_mic_bias || jack_mic_bias);
+}
+
+static void sec_jack_set_micbias_state(bool on)
+{
+	unsigned long flags;
+	pr_debug("%s: HWREV=%d, on=%d\n", __func__, HWREV, on ? 1 : 0);
+	spin_lock_irqsave(&mic_bias_lock, flags);
+	jack_mic_bias = on;
+	set_shared_mic_bias();
+	spin_unlock_irqrestore(&mic_bias_lock, flags);
+}
+
+static struct wm8994_platform_data wm8994_pdata = {
+	.ldo = GPIO_CODEC_LDO_EN,
+	.ear_sel = -1,
+};
 
 static struct i2c_board_info i2c_devs4[] __initdata = {
 	{
 		I2C_BOARD_INFO("wm8994-samsung", (0x34>>1)),
+		.platform_data = &wm8994_pdata,
 	},
 #ifdef CONFIG_MHL_SII9234
 	{
@@ -2965,37 +2986,89 @@ static struct platform_device sec_device_btsleep = {
 	.id	= -1,
 };
 
-#ifdef CONFIG_SEC_HEADSET
-static struct sec_jack_port sec_jack_port_info[] = {
+static struct sec_jack_zone sec_jack_zones[] = {
 	{
-		{ // HEADSET detect info
-			.eint		= IRQ_EINT8,
-			.gpio		= GPIO_DET_35,
-			.gpio_af	= GPIO_DET_35_AF ,
-			.low_active = 1
-		},
-		{ // SEND/END info
-			.eint		= IRQ_EINT12,
-			.gpio		= GPIO_EAR_SEND_END,
-			.gpio_af	= GPIO_EAR_SEND_END_AF,
-			.low_active = 1
-		}
-	}
+		/* adc == 0, unstable zone, default to 3pole if it stays
+		* in this range for a half second (20ms delays, 25 samples)
+		*/
+		.adc_high = 0,
+		.delay_ms = 20,
+		.check_count = 25,
+		.jack_type = SEC_HEADSET_3POLE,
+	},
+	{
+		/* 0 < adc <= 400, unstable zone, default to 3pole if it stays
+		* in this range for 800ms (10ms delays, 80 samples)
+		*/
+		.adc_high = 400,
+		.delay_ms = 10,
+		.check_count = 80,
+		.jack_type = SEC_HEADSET_3POLE,
+	},
+	{
+		/* 400 < adc <= 3100, default to 4pole if it
+		* stays in this range for 800ms (10ms delays, 80 samples)
+		*/
+		.adc_high = 3100,
+		.delay_ms = 10,
+		.check_count = 80,
+		.jack_type = SEC_HEADSET_4POLE,
+	},
+	{
+		/* adc > max for device above, unstable zone, default to 3pole if it stays
+		* in this range for two seconds (10ms delays, 200 samples)
+		*/
+		.adc_high = 0x7fffffff,
+		.delay_ms = 10,
+		.check_count = 200,
+		.jack_type = SEC_HEADSET_3POLE,
+	},
 };
 
-static struct sec_jack_platform_data sec_jack_pdata = {
-		.port			= sec_jack_port_info,
-		.nheadsets		= ARRAY_SIZE(sec_jack_port_info)
+/* To support 3-buttons earjack */
+static struct sec_jack_buttons_zone sec_jack_buttons_zones[] = {
+	{
+		/* 0 <= adc <=110, stable zone */
+		.code		= KEY_MEDIA,
+		.adc_low	= 0,
+		.adc_high	= 110,
+	},
+	{
+		/* 130 <= adc <= 365, stable zone */
+		.code		= KEY_PREVIOUSSONG, //KEY_VOLUMEDOWN ?
+		.adc_low	= 130,
+		.adc_high	= 365,
+	},
+	{
+		/* 385 <= adc <= 870, stable zone */
+		.code		= KEY_NEXTSONG, //KEY_VOLUMEUP ?
+		.adc_low	= 385,
+		.adc_high	= 870,
+	},
 };
 
-static struct platform_device sec_device_jack= {
-		.name			= "sec_jack",
-		.id 			= -1,
-		.dev			= {
-				.platform_data	= &sec_jack_pdata,
-		}
+static int sec_jack_get_adc_value(void)
+{
+    pr_info("%s: sec_jack adc value = %i \n", __func__, s3c_adc_get_adc_data(3));
+	return s3c_adc_get_adc_data(3);
+}
+
+struct sec_jack_platform_data sec_jack_pdata = {
+	.set_micbias_state = sec_jack_set_micbias_state,
+	.get_adc_value = sec_jack_get_adc_value,
+	.zones = sec_jack_zones,
+	.num_zones = ARRAY_SIZE(sec_jack_zones),
+	.buttons_zones = sec_jack_buttons_zones,
+	.num_buttons_zones = ARRAY_SIZE(sec_jack_buttons_zones),
+	.det_gpio = GPIO_DET_35,
+	.send_end_gpio = GPIO_EAR_SEND_END,
 };
-#endif
+
+static struct platform_device sec_device_jack = {
+	.name			= "sec_jack",
+	.id			= 1, /* will be used also for gpio_event id */
+	.dev.platform_data	= &sec_jack_pdata,
+};
 
  /* touch screen device init */
 static void __init qt_touch_init(void)
@@ -7052,11 +7125,9 @@ static struct platform_device *p1_devices[] __initdata = {
 
 	&s3c_device_g3d,
 	&s3c_device_lcd,
-
-#if defined(CONFIG_SEC_HEADSET)
 	&sec_device_jack,
-#endif
 	&s3c_device_i2c0,
+
 #if defined(CONFIG_S3C_DEV_I2C1)
 	&s3c_device_i2c1,
 #endif
