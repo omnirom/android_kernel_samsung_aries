@@ -214,5 +214,5 @@ module_init(max8998_charger_init);
 module_exit(max8998_charger_exit);
 
 MODULE_AUTHOR("Ikkeun Kim <iks.kim@samsung.com>");
-MODULE_DESCRIPTION("max8998 charger driver");
+MODULE_DESCRIPTION("max8998 charger driver for P1");
 MODULE_LICENSE("GPL");
