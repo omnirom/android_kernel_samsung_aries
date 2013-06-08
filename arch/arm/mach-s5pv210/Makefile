@@ -51,6 +51,7 @@ obj-$(CONFIG_MACH_P1)		+= mach-p1.o p1-rfkill.o
 obj-$(CONFIG_MACH_P1)		+= p1-watchdog.o
 obj-$(CONFIG_MACH_P1)		+= dev-p1-phone.o
 obj-$(CONFIG_MACH_P1) 		+= level.o
+obj-$(CONFIG_MACH_P1) 		+= p1-sec_switch.o
 
 # device support
 

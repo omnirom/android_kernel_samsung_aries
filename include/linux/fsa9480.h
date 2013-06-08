@@ -36,6 +36,10 @@ struct fsa9480_platform_data {
 	void (*deskdock_cb) (bool attached);
 	void (*cardock_cb) (bool attached);
 	void (*reset_cb) (void);
+#ifdef CONFIG_MACH_P1
+	void (*set_init_flag) (void);
+	void (*set_usb_switch) (void);
+#endif
 };
 
 #ifdef CONFIG_MACH_ARIES

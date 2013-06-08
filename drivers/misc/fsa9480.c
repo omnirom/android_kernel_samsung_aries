@@ -371,6 +371,10 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw)
 	if (val1 || val2) {
 		/* USB */
 		if (val1 & DEV_T1_USB_MASK || val2 & DEV_T2_USB_MASK) {
+#ifdef CONFIG_MACH_P1
+			if(pdata->set_usb_switch)
+				pdata->set_usb_switch();
+#endif
 			if (pdata->usb_cb)
 				pdata->usb_cb(FSA9480_ATTACHED);
 			if (usbsw->mansw) {
@@ -689,6 +693,12 @@ static int __devinit fsa9480_probe(struct i2c_client *client,
 
 	fsa9480_reg_init(usbsw);
 	local_usbsw = usbsw;  // temp
+
+#ifdef CONFIG_MACH_P1
+	// set fsa9480 init flag.
+	if (usbsw->pdata->set_init_flag)
+		usbsw->pdata->set_init_flag();
+#endif
 
 	ret = fsa9480_irq_init(usbsw);
 	if (ret)
