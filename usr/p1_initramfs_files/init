@@ -8,15 +8,71 @@ exec >>boot.txt 2>&1
 busybox rm init
 busybox mount -t proc proc /proc
 busybox mount -t sysfs sysfs /sys
+busybox mount -t yaffs2 /dev/block/mtdblock2 /system
+busybox mount -t ext4 /dev/block/mmcblk0p3 /cache
+
+while ! busybox test -d /sys/dev/block/179:0 ; do
+	busybox echo "waiting for internal mmc" >>boot.txt
+	busybox sleep 1
+done
 
 load_image=/stage1/boot.cpio
 
-if busybox grep -q bootmode=2 /proc/cmdline ; then
+if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmdline ; then
 	# recovery boot
+	busybox echo 'RECOVERY BOOT' >>boot.txt
+	busybox rm -fr /cache/.startrecovery
 	load_image=/stage1/recovery.cpio
+	busybox echo "loading recovery.cpio" >>boot.txt
+
+elif ! busybox test -e /system/build.prop ; then
+
+	# emergency boot
+	busybox echo "EMERGENCY BOOT" >>boot.txt
+	busybox umount /cache
+	make_ext4fs -b 4096 -g 32768 -i 8192 -I 256 -a /cache /dev/block/mmcblk0p3
+	busybox mount -t ext4 /dev/block/mmcblk0p3 /cache
+
+	if ! busybox test -e /cache/recovery ; then
+		busybox mkdir /cache/recovery
+	fi
+
+	busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard
+	busybox sleep 1
+
+	if busybox test -e /sdcard/omni.cfg ; then
+		busybox echo "installing: `busybox cat /sdcard/omni.cfg`" >>boot.txt
+		busybox echo "creating recovery command" >>boot.txt
+		busybox touch /cache/recovery/command
+		busybox echo "--update_package=`busybox cat /sdcard/omni.cfg`" > /cache/recovery/command
+	else
+		busybox echo "omni.cfg not found" >>boot.txt
+	fi
+
+	busybox echo "loading recovery.cpio" >>boot.txt
+	load_image=/stage1/recovery.cpio
+
+	# umount sdcard
+	busybox umount /sdcard
+
+else
+	# android boot
+	busybox echo "ANDROID BOOT" >>boot.txt
+	busybox echo "loading boot.cpio" >>boot.txt
 fi
 
-busybox cpio -i < ${load_image}
+busybox umount /cache
+busybox umount /system
+busybox rmdir /sdcard
+
+busybox cpio -ui < ${load_image}
+
+if busybox grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
+	# low power mode
+	busybox cp lpm.rc init.rc
+	busybox rm -fr init.p1.rc
+	busybox rm -fr init.p1ln.rc
+fi
 
 busybox umount /sys
 busybox umount /proc
