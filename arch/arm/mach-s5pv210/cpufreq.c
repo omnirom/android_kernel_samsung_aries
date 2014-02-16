@@ -25,6 +25,7 @@
 #include <mach/map.h>
 #include <mach/regs-clock.h>
 #include <mach/cpu-freq-v210.h>
+#include <mach/voltages.h>
 
 static struct clk *cpu_clk;
 static struct clk *dmc0_clk;
@@ -32,8 +33,10 @@ static struct clk *dmc1_clk;
 static struct cpufreq_freqs freqs;
 static DEFINE_MUTEX(set_freq_lock);
 
-/* APLL M,P,S values for 1.2G/1G/800Mhz */
+/* APLL M,P,S values */
+#define APLL_VAL_1300	((1 << 31) | (325 << 16) | (6 << 8) | 1)
 #define APLL_VAL_1200	((1 << 31) | (150 << 16) | (3 << 8) | 1)
+#define APLL_VAL_1100	((1 << 31) | (275 << 16) | (6 << 8) | 1)
 #define APLL_VAL_1000	((1 << 31) | (125 << 16) | (3 << 8) | 1)
 #define APLL_VAL_800	((1 << 31) | (100 << 16) | (3 << 8) | 1)
 
@@ -74,12 +77,14 @@ enum s5pv210_dmc_port {
 };
 
 static struct cpufreq_frequency_table s5pv210_freq_table[] = {
-	{OC0, 1200*1000},
-	{L0, 1000*1000},
-	{L1, 800*1000},
-	{L2, 400*1000},
-	{L3, 200*1000},
-	{L4, 100*1000},
+	{OC2, 1300*1000},
+	{OC1, 1200*1000},
+	{OC0, 1100*1000},
+	{L0,  1000*1000},
+	{L1,   800*1000},
+	{L2,   400*1000},
+	{L3,   200*1000},
+	{L4,   100*1000},
 	{0, CPUFREQ_TABLE_END},
 };
 
@@ -93,59 +98,49 @@ struct s5pv210_dvs_conf {
 
 #ifdef CONFIG_DVFS_LIMIT
 static unsigned int g_dvfs_high_lock_token = 0;
-static unsigned int g_dvfs_high_lock_limit = 6;
+static unsigned int g_dvfs_high_lock_limit = 8;
 static unsigned int g_dvfslockval[DVFS_LOCK_TOKEN_NUM];
 //static DEFINE_MUTEX(dvfs_high_lock);
 #endif
-
-const unsigned long arm_volt_max = 1450000;
-const unsigned long int_volt_max = 1250000;
-
-#ifdef CONFIG_MACH_P1
-
-#define ARM_VOLT_1_2_GHZ	1450000
-#define INT_VOLT_1_2_GHZ	1175000
-#define ARM_VOLT_1_0_GHZ	1350000
-#define ARM_VOLT_800_MHZ	1275000
-
-#else // CONFIG_MACH_ARIES
-
-#define ARM_VOLT_1_2_GHZ	1350000
-#define INT_VOLT_1_2_GHZ	1150000
-#define ARM_VOLT_1_0_GHZ	1275000
-#define ARM_VOLT_800_MHZ	1200000
-
-#endif
-
+const unsigned long arm_volt_max = ARMVOLTMAX;
+const unsigned long int_volt_max = INTVOLTMAX;
 
 static struct s5pv210_dvs_conf dvs_conf[] = {
-	[OC0] = {
-		.arm_volt   = ARM_VOLT_1_2_GHZ,
-		.int_volt   = INT_VOLT_1_2_GHZ,
+	[OC2] = { /* 1.3GHz */
+		.arm_volt   = DVSARM1,
+		.int_volt   = DVSINT1,
 	},
-	[L0] = {
-		.arm_volt   = ARM_VOLT_1_0_GHZ,
-		.int_volt   = 1100000,
+	[OC1] = { /* 1.2GHz */
+		.arm_volt   = DVSARM2,
+		.int_volt   = DVSINT1,
 	},
-	[L1] = {
-		.arm_volt   = ARM_VOLT_800_MHZ,
-		.int_volt   = 1100000,
+	[OC0] = { /* 1.1GHz */
+		.arm_volt   = DVSARM3,
+		.int_volt   = DVSINT2,
 	},
-	[L2] = {
-		.arm_volt   = 1050000,
-		.int_volt   = 1100000,
+	[L0] = { /* 1.0GHz */
+		.arm_volt   = DVSARM4,
+		.int_volt   = DVSINT3,
 	},
-	[L3] = {
-		.arm_volt   = 950000,
-		.int_volt   = 1100000,
+	[L1] = { /* 800MHz */
+		.arm_volt   = DVSARM5,
+		.int_volt   = DVSINT3,
 	},
-	[L4] = {
-		.arm_volt   = 950000,
-		.int_volt   = 1000000,
+	[L2] = { /* 400MHz */
+		.arm_volt   = DVSARM6,
+		.int_volt   = DVSINT3
+	},
+	[L3] = { /* 200MHz */
+		.arm_volt   = DVSARM7,
+		.int_volt   = DVSINT3,
+	},
+	[L4] = { /* 100MHz */
+		.arm_volt   = DVSARM7,
+		.int_volt   = DVSINT4,
 	},
 };
 
-static u32 clkdiv_val[6][11] = {
+static u32 clkdiv_val[8][11] = {
 	/*
 	 * Clock divider value for following
 	 * { APLL, A2M, HCLK_MSYS, PCLK_MSYS,
@@ -153,21 +148,20 @@ static u32 clkdiv_val[6][11] = {
 	 *   ONEDRAM, MFC, G3D }
 	 */
 
-	/* OC0 : [1200/200/100][166/83][133/66][200/200] */
+	/* OC2 : [1300/200/100][166/83][133/66][200/200] */
+	{0, 5.5, 5.5, 1, 3, 1, 4, 1, 3, 0, 0},
+	/* OC1 : [1200/200/100][166/83][133/66][200/200] */
 	{0, 5, 5, 1, 3, 1, 4, 1, 3, 0, 0},
-
+	/* OC0 : [1100/200/100][166/83][133/66][200/200] */
+	{0, 4.5, 4.5, 1, 3, 1, 4, 1, 3, 0, 0},
 	/* L0 : [1000/200/100][166/83][133/66][200/200] */
 	{0, 4, 4, 1, 3, 1, 4, 1, 3, 0, 0},
-
 	/* L1 : [800/200/100][166/83][133/66][200/200] */
 	{0, 3, 3, 1, 3, 1, 4, 1, 3, 0, 0},
-
 	/* L2 : [400/200/100][166/83][133/66][200/200] */
 	{1, 3, 1, 1, 3, 1, 4, 1, 3, 0, 0},
-
 	/* L3 : [200/200/100][166/83][133/66][200/200] */
 	{3, 3, 0, 1, 3, 1, 4, 1, 3, 0, 0},
-
 	/* L4 : [100/100/100][83/83][66/66][100/100] */
 	{7, 7, 0, 0, 7, 0, 9, 0, 7, 0, 0},
 };
@@ -473,8 +467,14 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 		 * 6-2. Wait untile the PLL is locked
 		 */
 		switch (index) {
-		case OC0:
+		case OC2:
+			__raw_writel(APLL_VAL_1300, S5P_APLL_CON);
+			break;
+		case OC1:
 			__raw_writel(APLL_VAL_1200, S5P_APLL_CON);
+			break;
+		case OC0:
+			__raw_writel(APLL_VAL_1100, S5P_APLL_CON);
 			break;
 		case L0:
 			__raw_writel(APLL_VAL_1000, S5P_APLL_CON);
