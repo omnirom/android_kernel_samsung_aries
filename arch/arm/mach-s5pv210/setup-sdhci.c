@@ -192,7 +192,6 @@ void s5pv210_sdhci0_translate_vdd(struct platform_device *pdev,
 void s5pv210_sdhci2_translate_vdd(struct platform_device *pdev, unsigned int vdd)
 {
 	unsigned int flag = 0;
-	bool is_reg_enabled = false;
 	struct regulator *vcc_vtf;
 
 	if (pdev->id != 2) /* T-FLSH */
@@ -208,21 +207,18 @@ void s5pv210_sdhci2_translate_vdd(struct platform_device *pdev, unsigned int vdd
 
 	if (vdd == 0) {
 		if (vreg_sts & flag) {
-			if (is_reg_enabled) {
+			if (regulator_is_enabled(vcc_vtf)) {
 				printk(KERN_DEBUG "%s.%d: ldo down\n", pdev->name, pdev->id);
-				regulator_force_disable(vcc_vtf);
+				regulator_disable(vcc_vtf);
 				vreg_sts &= ~flag;
-				is_reg_enabled = false;
 			}
 		}
-	}
-	else {
+	} else {
 		if (!(vreg_sts & flag)) {
-			if (!is_reg_enabled) {
+			if (!regulator_is_enabled(vcc_vtf)) {
 				printk(KERN_DEBUG "%s.%d: ldo on\n", pdev->name, pdev->id);
 				regulator_enable(vcc_vtf);
 				vreg_sts |= flag;
-				is_reg_enabled = true;
 			}
 		}
 	}
