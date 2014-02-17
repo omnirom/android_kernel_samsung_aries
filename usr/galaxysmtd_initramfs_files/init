@@ -10,7 +10,7 @@ busybox mount -t proc proc /proc
 busybox mount -t sysfs sysfs /sys
 
 while ! busybox test -d /sys/dev/block/179:0 ; do
-	echo "Waiting for internal mmc..."
+	busybox echo "waiting for internal mmc" >>boot.txt
 	busybox sleep 1
 done
 
@@ -24,35 +24,55 @@ image=/stage1/ramdisk.img
 
 if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmdline ; then
 	# recovery boot
+	busybox echo 'RECOVERY BOOT' >>boot.txt
 	busybox rm -fr /cache/.startrecovery
 	image=/stage1/ramdisk-recovery.img
+	busybox echo "loading ramdisk-recovery.img" >>boot.txt
 
 	# disable lpm
 	busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
+
 elif ! busybox test -e /system/build.prop ; then
+
 	# emergency boot
+	busybox echo "EMERGENCY BOOT" >>boot.txt
 	busybox umount /cache
 	erase_image cache
 	busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
-	busybox mkdir /cache/recovery
 
-	busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard	
-
-	UPDATE=$(busybox cat /sdcard/omni.cfg)
-
-	if busybox test -n "$UPDATE" ; then
-		busybox echo "install_zip(\"`echo $UPDATE`\");" > /cache/recovery/extendedcommand
+	if ! busybox test -e /cache/recovery ; then
+		busybox mkdir /cache/recovery
 	fi
 
+	busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard
+	busybox sleep 1
+
+	if busybox test -e /sdcard/omni.cfg ; then
+		busybox echo "installing: `busybox cat /sdcard/omni.cfg`" >>boot.txt
+		busybox echo "creating recovery command" >>boot.txt
+		busybox touch /cache/recovery/command
+		busybox echo "--update_package=`busybox cat /sdcard/omni.cfg`" > /cache/recovery/command
+	else
+		busybox echo "omni.cfg not found" >>boot.txt
+	fi
+
+	busybox echo "loading ramdisk-recovery.img" >>boot.txt
 	image=/stage1/ramdisk-recovery.img
 
 	# disable lpm
 	busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
+
+	# umount sdcard
+	busybox umount /sdcard
+
+else
+	# android boot
+	busybox echo "ANDROID BOOT" >>boot.txt
+	busybox echo "loading ramdisk.img" >>boot.txt
 fi
 
 busybox umount /cache
 busybox umount /system
-busybox umount /sdcard
 busybox rmdir /sdcard
 
 busybox zcat $image | busybox cpio -i
