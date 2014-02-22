@@ -177,10 +177,11 @@ void lms700_powerup(void)
 	if(!lms700_state.powered_up)
 		{
 		// ldo enable
-		ret = regulator_enable(regulator_lvds33);
-		if(ret<0)
-			printk(KERN_ERR "%s: is_enabled() failed for regulator_lvds33: %d\n", __func__, ret);
-
+		if (!regulator_is_enabled(regulator_lvds33)) {
+			ret = regulator_enable(regulator_lvds33);
+			if(ret < 0)
+				printk(KERN_ERR "%s: is_enabled() failed for regulator_lvds33: %d\n", __func__, ret);
+		}
 	//#if !defined(CONFIG_TARGET_LOCALE_LTN)  // CYS_ 2010.07.02 for Camera Preview
 	//	if(HWREV <= 10)		// MIDAS[2010.09.14] MLCD_ON control below rev0.4 (EUR) or rev0.8(KOR)
 	//		gpio_set_value(GPIO_MLCD_ON, 1);
@@ -222,8 +223,7 @@ void lms700_powerdown(void)
 
 	mutex_lock(&lms700_power_lock);
 
-	if(lms700_state.powered_up)
-		{
+	if (lms700_state.powered_up) {
 		// Disable LDOs
 #if defined (CONFIG_TARGET_LOCALE_EUR) || defined (CONFIG_TARGET_LOCALE_HKTW) || defined (CONFIG_TARGET_LOCALE_HKTW_FET) || defined (CONFIG_TARGET_LOCALE_VZW) || defined (CONFIG_TARGET_LOCALE_USAGSM)
 		if(HWREV >= 13)		// above rev0.7 (EUR)
@@ -243,12 +243,14 @@ void lms700_powerdown(void)
 	//		gpio_set_value(GPIO_MLCD_ON, 0);
 	//#endif
 
-		ret = regulator_disable(regulator_lvds33);
-		if(ret<0)
-			printk(KERN_ERR "%s: is_disabled() failed for regulator_lvds33: %d\n", __func__, ret);
+		if (regulator_is_enabled(regulator_lvds33)) {
+			ret = regulator_disable(regulator_lvds33);
+			if (ret < 0)
+				printk(KERN_ERR "%s: is_disabled() failed for regulator_lvds33: %d\n", __func__, ret);
+		}
 
 		lms700_state.powered_up = FALSE;
-		}
+	}
 
 	mutex_unlock(&lms700_power_lock);
 
@@ -777,38 +779,39 @@ static int __init lms700_probe(struct platform_device *pdev)
 }
 
 #if CONFIG_PM
-int lms700_suspend(struct platform_device *pdev, pm_message_t state)
+static int lms700_suspend(struct device *dev)
 {
 	pr_info("%s::%d->lms700 suspend\n",__func__,0);
-	lms700_powerdown();
+	//lms700_powerdown();
 
 	return 0;
 }
 
-int lms700_resume(struct platform_device *pdev, pm_message_t state)
+static int lms700_resume(struct device *dev)
 {
 	pr_info("%s::%d ->lms700 resume\n",__func__,0);
-	lms700_powerup();
+	//lms700_powerup();
 
 	return 0;
 }
+
+static const struct dev_pm_ops lms700_pm_ops = {
+	.suspend = lms700_suspend,
+	.resume = lms700_resume,
+};
 #endif
 
 static struct platform_driver lms700_driver = {
 	.driver = {
-		.name	= "lms700",
-		.owner	= THIS_MODULE,
+		.name = "lms700",
+		.owner = THIS_MODULE,
+#if CONFIG_PM
+		.pm = &lms700_pm_ops,
+#endif
 	},
 	.probe		= lms700_probe,
 	.remove		= __exit_p(lms700_remove),
 	.shutdown	= lms700_shutdown,
-//#ifdef CONFIG_PM
-//	.suspend	= lms700_suspend,
-//	.resume		= lms700_resume,
-//#else
-	.suspend	= NULL,
-	.resume		= NULL,
-//#endif
 };
 
 static int __init lms700_init(void)
