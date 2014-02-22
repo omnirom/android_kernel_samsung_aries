@@ -41,15 +41,12 @@
 #define SETTING_PCLK_55M
 #endif
 
-#define CMC623_ADDR		     0x70  /* slave addr for i2c */
-#define CMC623_DEVICE_ADDR   (0x38 << 1)
-#define CMC623_MAX_SETTINGS	 100
-#define CMC623_I2C_SPEED_KHZ 400
+#define END_SEQ		0xffff
 
 #define klogi(fmt, arg...)  printk(KERN_INFO "%s: " fmt "\n" , __func__, ## arg)
 #define kloge(fmt, arg...)  printk(KERN_ERR "%s(%d): " fmt "\n" , __func__, __LINE__, ## arg)
 
-#define END_SEQ		0xffff
+
 #define DELIMITER 0xff
 
 static const u8 all_regs_bank0[] = {
@@ -100,7 +97,6 @@ static void set_cmc623_val_for_pclk(int pclk)
 		stageClkA = 0x1a08;
 		stageClkB = 0x0809;
 		refreshTime = 0x0074;
-
 	} else if (pclk > 47000000) {
 		stageClkA = 0x1a09;
 		stageClkB = 0x090a;
@@ -1094,7 +1090,7 @@ static ssize_t read_reg_show(struct device *dev, struct device_attribute *attr, 
 		ret = cmc623_I2cWrite16(0x00, 0x0001);
 	else if (read_reg_address > 0x0)
 		ret = cmc623_I2cWrite16(0x00, 0x0000);
-	ret = cmc623_I2cRead16(read_reg_address, &data2);
+	ret = cmc623_I2cRead16_direct(read_reg_address, &data2, TRUE);
 
     return sprintf(buf, "addr:0x%04x, data:0x%04x\n", read_reg_address, data2);
 }
@@ -1114,7 +1110,7 @@ static ssize_t read_reg_store(struct device *dev, struct device_attribute *attr,
 		else if (read_reg_address > 0x0)
 			ret = cmc623_I2cWrite16(0x00, 0x0000);
 
-		ret = cmc623_I2cRead16(read_reg_address, &data2);
+		ret = cmc623_I2cRead16_direct(read_reg_address, &data2, TRUE);
 
 	} else
 		printk("parse error num:%d, data:0x%04x\n", ret, data1);
@@ -1141,14 +1137,18 @@ static ssize_t show_regs_store(struct device *dev, struct device_attribute *attr
 
 		ret = cmc623_I2cWrite16(0x00, 0x0000);
 		for (i=0;i<ARRAY_SIZE(all_regs_bank0);i++) {
-			if (all_regs_bank0[i] != DELIMITER)
-				ret = cmc623_I2cRead16(all_regs_bank0[i], &data2);
+			if (all_regs_bank0[i] == DELIMITER)
+				printk("------------------------\n");
+			else
+				ret = cmc623_I2cRead16_direct(all_regs_bank0[i], &data2, TRUE);
 		}
 
 		ret = cmc623_I2cWrite16(0x00, 0x0001);
 		for (i=0;i<ARRAY_SIZE(all_regs_bank1);i++) {
-			if (all_regs_bank1[i] != DELIMITER)
-				ret = cmc623_I2cRead16(all_regs_bank1[i], &data2);
+			if (all_regs_bank1[i] == DELIMITER)
+				printk("------------------------\n");
+			else
+				ret = cmc623_I2cRead16_direct(all_regs_bank1[i], &data2, TRUE);
 		}
 	} else
 		printk("parse error num:%d, data:0x%04x\n", ret, data1);
