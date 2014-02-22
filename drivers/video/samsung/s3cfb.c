@@ -1151,12 +1151,11 @@ static int __devinit s3cfb_probe(struct platform_device *pdev)
 
 	s3cfb_set_vsync_interrupt(fbdev, 1);
 	s3cfb_set_global_interrupt(fbdev, 1);
+	s3cfb_init_global(fbdev);
 
 #ifdef CONFIG_FB_S3C_MDNIE
 	s3c_mdnie_setup();
 #endif
-
-	s3cfb_init_global(fbdev);
 
 	if (s3cfb_alloc_framebuffer(fbdev)) {
 		ret = -ENOMEM;
@@ -1190,6 +1189,10 @@ static int __devinit s3cfb_probe(struct platform_device *pdev)
 #if defined(CONFIG_FB_S3C_TL2796)
 	if (pdata->backlight_on)
 		pdata->backlight_on(pdev);
+#endif
+#ifdef CONFIG_MACH_P1
+	if (!bootloaderfb && pdata->reset_lcd)
+		pdata->reset_lcd(pdev);
 #endif
 #endif
 
