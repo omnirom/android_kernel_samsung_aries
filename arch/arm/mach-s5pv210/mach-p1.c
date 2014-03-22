@@ -2651,13 +2651,15 @@ static void check_gadget_vbus_connect(bool attached)
 {
 	struct usb_gadget *gadget = platform_get_drvdata(&s3c_device_usbgadget);
 
-	udelay(50);
+	udelay(200);
 
 	if (gadget) {
 		if (attached)
 			usb_gadget_vbus_connect(gadget);
-		else
+		else {
+			gadget->speed = USB_SPEED_HIGH;
 			usb_gadget_vbus_disconnect(gadget);
+		}
 	}
 }
 
@@ -2675,7 +2677,7 @@ static void fsa9480_usb_cb(bool attached)
 static void fsa9480_charger_cb(bool attached)
 {
 	set_cable_status = attached ? CABLE_TYPE_AC : CABLE_TYPE_NONE;
-	udelay(50);
+	udelay(200);
 	if (callbacks && callbacks->set_cable)
 		callbacks->set_cable(callbacks, set_cable_status);
 }
@@ -2704,7 +2706,6 @@ static void fsa9480_cardock_cb(bool attached)
 	else
 		switch_set_state(&switch_dock, 0);
 
-	udelay(50);
 	set_cable_status = attached ? CABLE_TYPE_AC : CABLE_TYPE_NONE;
 	if (callbacks && callbacks->set_cable)
 		callbacks->set_cable(callbacks, set_cable_status);
@@ -2778,9 +2779,12 @@ static struct i2c_board_info i2c_devs6[] __initdata = {
 		I2C_BOARD_INFO("max8998", (0xCC >> 1)),
 		.platform_data	= &max8998_pdata,
 		.irq		= IRQ_EINT7,
-	}, {
+	},
+    /*
+    {
 		I2C_BOARD_INFO("rtc_max8998", (0x0D >> 1)),
 	},
+    */
 #endif
 };
 
