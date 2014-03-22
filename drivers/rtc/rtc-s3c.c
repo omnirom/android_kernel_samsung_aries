@@ -520,7 +520,6 @@ static int __devexit s3c_rtc_remove(struct platform_device *dev)
 static int __devinit s3c_rtc_probe(struct platform_device *pdev)
 {
 	struct rtc_device *rtc;
-	struct rtc_time rtc_tm;
 	struct resource *res;
 	unsigned char bcd_tmp, bcd_loop;
 	int ret;
@@ -698,7 +697,7 @@ static int __devinit s3c_rtc_probe(struct platform_device *pdev)
 
 static int ticnt_save;
 
-static int s3c_rtc_suspend(struct platform_device *pdev, pm_message_t state)
+static int s3c_rtc_suspend(struct device *dev)
 {
 	struct timespec time;
 
@@ -706,17 +705,17 @@ static int s3c_rtc_suspend(struct platform_device *pdev, pm_message_t state)
 	/* save TICNT for anyone using periodic interrupts */
 	ticnt_save = readl(s3c_rtc_base + S3C2410_TICNT);
 
-	if (device_may_wakeup(&pdev->dev) && !wake_en) {
+	if (device_may_wakeup(dev) && !wake_en) {
 		if (enable_irq_wake(s3c_rtc_alarmno) == 0)
 			wake_en = true;
 		else
-			dev_err(&pdev->dev, "enable_irq_wake failed\n");
+			dev_err(dev, "enable_irq_wake failed\n");
 	}
 
 	return 0;
 }
 
-static int s3c_rtc_resume(struct platform_device *pdev)
+static int s3c_rtc_resume(struct device *dev)
 {
 	struct timespec time;
 
@@ -724,13 +723,19 @@ static int s3c_rtc_resume(struct platform_device *pdev)
 
 	writel(ticnt_save, s3c_rtc_base + S3C2410_TICNT);
 
-	if (device_may_wakeup(&pdev->dev) && wake_en) {
+	if (device_may_wakeup(dev) && wake_en) {
 		disable_irq_wake(s3c_rtc_alarmno);
 		wake_en = false;
 	}
 
 	return 0;
 }
+
+static const struct dev_pm_ops s3c_rtc_pm_ops = {
+	.suspend = s3c_rtc_suspend,
+	.resume = s3c_rtc_resume,
+};
+
 #else
 #define s3c_rtc_suspend NULL
 #define s3c_rtc_resume  NULL
@@ -752,12 +757,13 @@ MODULE_DEVICE_TABLE(platform, s3c_rtc_driver_ids);
 static struct platform_driver s3c_rtc_driver = {
 	.probe		= s3c_rtc_probe,
 	.remove		= __devexit_p(s3c_rtc_remove),
-	.suspend	= s3c_rtc_suspend,
-	.resume		= s3c_rtc_resume,
 	.id_table	= s3c_rtc_driver_ids,
 	.driver		= {
 		.name	= "s3c-rtc",
 		.owner	= THIS_MODULE,
+#ifdef CONFIG_PM
+		.pm		= &s3c_rtc_pm_ops
+#endif
 	},
 };
 
