@@ -12,53 +12,53 @@ busybox mount -t yaffs2 /dev/block/mtdblock2 /system
 busybox mount -t ext4 /dev/block/mmcblk0p3 /cache
 
 while ! busybox test -d /sys/dev/block/179:0 ; do
-	busybox echo "waiting for internal mmc" >>boot.txt
-	busybox sleep 1
+    busybox echo "waiting for internal mmc" >>boot.txt
+    busybox sleep 1
 done
 
 load_image=/stage1/boot.cpio
 
 if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmdline ; then
-	# recovery boot
-	busybox echo 'RECOVERY BOOT' >>boot.txt
-	busybox rm -fr /cache/.startrecovery
-	load_image=/stage1/recovery.cpio
-	busybox echo "loading recovery.cpio" >>boot.txt
+    # recovery boot
+    busybox echo 'RECOVERY BOOT' >>boot.txt
+    busybox rm -fr /cache/.startrecovery
+    load_image=/stage1/recovery.cpio
+    busybox echo "loading recovery.cpio" >>boot.txt
 
 elif ! busybox test -e /system/build.prop ; then
 
-	# emergency boot
-	busybox echo "EMERGENCY BOOT" >>boot.txt
-	busybox umount /cache
-	make_ext4fs -b 4096 -g 32768 -i 8192 -I 256 -a /cache /dev/block/mmcblk0p3
-	busybox mount -t ext4 /dev/block/mmcblk0p3 /cache
+    # emergency boot
+    busybox echo "EMERGENCY BOOT" >>boot.txt
+    busybox umount /cache
+    make_ext4fs -b 4096 -g 32768 -i 8192 -I 256 -a /cache /dev/block/mmcblk0p3
+    busybox mount -t ext4 /dev/block/mmcblk0p3 /cache
 
-	if ! busybox test -e /cache/recovery ; then
-		busybox mkdir /cache/recovery
-	fi
+    if ! busybox test -e /cache/recovery ; then
+        busybox mkdir /cache/recovery
+    fi
 
-	busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard
-	busybox sleep 1
+    busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard
+    busybox sleep 1
 
-	if busybox test -e /sdcard/omni.cfg ; then
-		busybox echo "installing: `busybox cat /sdcard/omni.cfg`" >>boot.txt
-		busybox echo "creating recovery command" >>boot.txt
-		busybox touch /cache/recovery/command
-		busybox echo "--update_package=`busybox cat /sdcard/omni.cfg`" > /cache/recovery/command
-	else
-		busybox echo "omni.cfg not found" >>boot.txt
-	fi
+    if busybox test -e /sdcard/omni.cfg ; then
+        busybox echo "installing: `busybox cat /sdcard/omni.cfg`" >>boot.txt
+        busybox echo "creating recovery command" >>boot.txt
+        busybox touch /cache/recovery/command
+        busybox echo "--update_package=`busybox cat /sdcard/omni.cfg`" > /cache/recovery/command
+    else
+        busybox echo "omni.cfg not found" >>boot.txt
+    fi
 
-	busybox echo "loading recovery.cpio" >>boot.txt
-	load_image=/stage1/recovery.cpio
+    busybox echo "loading recovery.cpio" >>boot.txt
+    load_image=/stage1/recovery.cpio
 
-	# umount sdcard
-	busybox umount /sdcard
+    # umount sdcard
+    busybox umount /sdcard
 
 else
-	# android boot
-	busybox echo "ANDROID BOOT" >>boot.txt
-	busybox echo "loading boot.cpio" >>boot.txt
+    # android boot
+    busybox echo "ANDROID BOOT" >>boot.txt
+    busybox echo "loading boot.cpio" >>boot.txt
 fi
 
 busybox umount /cache
@@ -68,10 +68,28 @@ busybox rmdir /sdcard
 busybox cpio -ui < ${load_image}
 
 if busybox grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
-	# low power mode
-	busybox cp lpm.rc init.rc
-	busybox rm -fr init.p1.rc
-	busybox rm -fr init.p1ln.rc
+    # low power mode
+    busybox cp lpm.rc init.rc
+    busybox rm -fr init.p1.rc
+fi
+
+HW=$(busybox cat /proc/cpuinfo | \
+    busybox grep Hardware | \
+    busybox sed s/Hardware// | \
+    busybox tr '[A-Z]' '[a-z]' | \
+    busybox tr -d ' ' | \
+    busybox tr -d ':' | \
+    busybox tr -d '\t')
+
+if [ "$HW" != "p1" ] ; then
+    if [ "$load_image" == "/stage1/boot.cpio" ] ; then
+        busybox ln -s /init.p1.rc /init.$HW.rc
+    elif [ "$load_image" == "/stage1/recovery.cpio" ] ; then
+        busybox ln -s /init.recovery.p1.rc /init.recovery.$HW.rc
+    fi
+
+    busybox ln -s /fstab.p1 /fstab.$HW
+    busybox ln -s /ueventd.p1.rc /ueventd.$HW.rc
 fi
 
 busybox umount /sys
