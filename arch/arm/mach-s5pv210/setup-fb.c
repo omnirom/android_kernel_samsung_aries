@@ -143,7 +143,7 @@ int s3cfb_clk_on(struct platform_device *pdev, struct clk **s3cfb_clk)
 #ifdef CONFIG_MACH_ARIES
 		clk_set_rate(sclk_mdnie_pwm, 2400*1000);		// mdnie pwm need to 24Khz*100
 #else // CONFIG_MACH_P1
-		clk_set_rate(sclk_mdnie_pwm, 2800*1000);		// mdnie pwm need to 28Khz*100
+		clk_set_rate(sclk_mdnie_pwm, 3000*1000);		// mdnie pwm need to 30Khz*100
 #endif
 		clk_put(sclk_mdnie_pwm);
 		}
