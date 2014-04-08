@@ -31,11 +31,6 @@
 #define ON              1
 #define OFF				0
 
-#define DELAY_LOWBOUND	(5 * NSEC_PER_MSEC)
-
-/* start time delay for light sensor in nano seconds */
-#define LIGHT_SENSOR_START_TIME_DELAY 50000000
-
 struct class *lightsensor_class;
 struct device *switch_cmd_dev;
 static bool light_enable = OFF;
@@ -163,17 +158,8 @@ static unsigned int get_next_level(unsigned int cur_lux)
 static void bh1721_light_enable(struct bh1721_data *bh1721)
 {
 	printk("[Light Sensor] starting poll timer, delay %lldns\n",
-		    ktime_to_ns(bh1721->light_poll_delay));
-
-	/*
-	 * Set far out of range ABS_MISC value, -1024, to enable real value to
-	 * go through next.
-	 */
-	input_abs_set_val(bh1721->light_input_dev,
-			  ABS_MISC, -bh1721->pdata->light_adc_max);
-
-	hrtimer_start(&bh1721->timer, ktime_set(0, LIGHT_SENSOR_START_TIME_DELAY), 
-		HRTIMER_MODE_REL);
+			ktime_to_ns(bh1721->light_poll_delay));
+	hrtimer_start(&bh1721->timer, bh1721->light_poll_delay, HRTIMER_MODE_REL);
 
 	if((bh1721_write_command(bh1721->i2c_client, &POWER_ON))>0)
 		printk("[Light Sensor] Power ON\n");
@@ -208,12 +194,6 @@ static ssize_t poll_delay_store(struct device *dev,
 	err = strict_strtoll(buf, 10, &new_delay);
 	if (err < 0)
 		return err;
-
-	if (new_delay < DELAY_LOWBOUND) {
-		printk("[Light Sensor] new delay less than low bound, so set delay "
-			"to %lld\n", (int64_t)DELAY_LOWBOUND);
-		new_delay = DELAY_LOWBOUND;
-	}
 
 	printk("[Light Sensor] new delay = %lldns, old delay = %lldns\n",
 		    new_delay, ktime_to_ns(bh1721->light_poll_delay));
@@ -489,8 +469,7 @@ static int bh1721_i2c_probe(struct i2c_client *client,
 	input_set_drvdata(input_dev, bh1721);
 	input_dev->name = "lightsensor-level";
 	input_set_capability(input_dev, EV_ABS, ABS_MISC);
-	input_set_abs_params(input_dev, ABS_MISC, 0, pdata->light_adc_max,
-			     pdata->light_adc_fuzz, 0);
+	input_set_abs_params(input_dev, ABS_MISC, 0, 1, 0, 0);
 
 	ret = input_register_device(input_dev);
 	if (ret < 0) {

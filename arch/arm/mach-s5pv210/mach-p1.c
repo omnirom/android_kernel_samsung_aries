@@ -2849,7 +2849,7 @@ static void ambient_light_sensor_reset(void)
 	gpio_set_value(gpio, 1);
 }
 
-static struct bh1721_platform_data bh1721_p1p2_platform_data = {
+static struct bh1721_platform_data bh1721_p1_platform_data = {
 	.reset = ambient_light_sensor_reset,
 };
 
@@ -2859,7 +2859,7 @@ static struct i2c_board_info i2c_devs10[] __initdata = {
 	},
 	{
 		I2C_BOARD_INFO("bh1721", 0x23),
-		.platform_data	= &bh1721_p1p2_platform_data,
+		.platform_data	= &bh1721_p1_platform_data,
 	},
 };
 

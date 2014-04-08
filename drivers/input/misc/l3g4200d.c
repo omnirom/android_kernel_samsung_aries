@@ -79,17 +79,11 @@
 #define MAX_ENTRY	1
 #define MAX_DELAY	(MAX_ENTRY * 9523809LL)
 
-#define REL_STATUS                      (REL_RX)
-#define REL_WAKE                        (REL_RY)
-#define REL_CONTROL_REPORT              (REL_RZ)
-
 /*#define SHIFT_ADJ_2G		4
 #define SHIFT_ADJ_4G		3
 #define SHIFT_ADJ_8G		2*/
 
 #define DEBUG 0
-
-static DEFINE_MUTEX(l3g4200d_mutex);
 
 static unsigned char reg_backup[5];
 static unsigned int fd_cnt = 0;
@@ -755,13 +749,11 @@ static long l3g4200d_ioctl(struct file *file,
 {
 	long err = 0;
 	unsigned char data[6];
-	mutex_lock(&l3g4200d_mutex);
 	/* check l3g4200d_client */
 	if (gyro->client == NULL) {
 		#if DEBUG
 		printk(KERN_ERR "I2C driver not install\n");
 		#endif
-		mutex_unlock(&l3g4200d_mutex);
 		return -EFAULT;
 	}
 
@@ -778,27 +770,30 @@ static long l3g4200d_ioctl(struct file *file,
 			#if DEBUG
 			printk(KERN_ERR "copy_from_user error\n");
 			#endif
+			return -EFAULT;
 		}
 		err = l3g4200d_set_range(*data);
-		break;
+		return err;
 
 	case L3G4200D_SET_MODE:
 		if (copy_from_user(data, (unsigned char *)arg, 1) != 0) {
 			#if DEBUG
 			printk(KERN_ERR "copy_to_user error\n");
 			#endif
+			return -EFAULT;
 		}
 		err = l3g4200d_set_mode(*data);
-		break;
+		return err;
 
 	case L3G4200D_SET_BANDWIDTH:
 		if (copy_from_user(data, (unsigned char *)arg, 1) != 0) {
 			#if DEBUG
 			printk(KERN_ERR "copy_from_user error\n");
 			#endif
+			return -EFAULT;
 		}
 		err = l3g4200d_set_bandwidth(*data);
-		break;
+		return err;
 
 	case L3G4200D_READ_GYRO_VALUES:
 		err = l3g4200d_read_gyro_values(
@@ -809,14 +804,13 @@ static long l3g4200d_ioctl(struct file *file,
 			#if DEBUG
 			printk(KERN_ERR "copy_to error\n");
 			#endif
+			return -EFAULT;
 		}
-		break;
+		return err;
 
 	default:
-		err = 0;
+		return 0;
 	}
-	mutex_unlock(&l3g4200d_mutex);
-	return err;
 }
 
 
@@ -949,6 +943,7 @@ static int l3g4200d_probe(struct i2c_client *client,
 	}
 
 	mutex_init(&data->lock);
+	mutex_lock(&data->lock);
 
 	/* hrtimer settings.  we poll for gyro values using a timer. */
 	hrtimer_init(&data->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
@@ -988,15 +983,6 @@ static int l3g4200d_probe(struct i2c_client *client,
 	/* Z */
 	input_set_capability(input_dev, EV_REL, REL_RZ);
 	input_set_abs_params(input_dev, REL_RZ, -32768, 32768, 0, 0);
-	/* status */
-	input_set_capability(input_dev, EV_REL, REL_STATUS);
-	input_set_abs_params(input_dev, REL_STATUS, -32768, 32768, 0, 0);
-	/* wake */
-	input_set_capability(input_dev, EV_REL, REL_WAKE);
-	input_set_abs_params(input_dev, REL_WAKE, -32768, 32768, 0, 0);
-	/* enabled/delay */
-	input_set_capability(input_dev, EV_REL, REL_CONTROL_REPORT);
-	input_set_abs_params(input_dev, REL_CONTROL_REPORT, -32768, 32768, 0, 0);
 
 	err = input_register_device(input_dev);
 	if (err < 0) {
@@ -1048,6 +1034,8 @@ static int l3g4200d_probe(struct i2c_client *client,
 	gyro = data;
 
 	printk(KERN_INFO "%s : L3G4200D device created successfully\n", __func__);
+
+	mutex_unlock(&data->lock);
 
 	return 0;
 
@@ -1103,11 +1091,11 @@ static int l3g4200d_remove(struct i2c_client *client)
 	gyro->client = NULL;
 	return 0;
 }
-#ifdef CONFIG_PM
+
 static int l3g4200d_suspend(struct device* dev)
 {
-	int i;
 	#if DEBUG
+	int i;
 	printk(KERN_INFO "l3g4200d_suspend\n");
 	#endif
 
@@ -1135,8 +1123,8 @@ static int l3g4200d_suspend(struct device* dev)
 
 static int l3g4200d_resume(struct device* dev)
 {
-	int i;
 	#if DEBUG
+	int i;
 	printk(KERN_INFO "l3g4200d_resume\n");
 	#endif
 
@@ -1164,7 +1152,6 @@ static const struct dev_pm_ops l3g4200d_pm_ops = {
 	.suspend = l3g4200d_suspend,
 	.resume = l3g4200d_resume,
 };
-#endif
 
 static const struct i2c_device_id l3g4200d_id[] = {
 	{ "l3g4200d", 0 },
@@ -1177,11 +1164,8 @@ static struct i2c_driver l3g4200d_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
 		.name = "l3g4200d",
-#ifdef CONFIG_PM
 		.pm = &l3g4200d_pm_ops,
-#endif
 	},
-	.class = I2C_CLASS_HWMON,
 	.probe = l3g4200d_probe,
 	.remove = __devexit_p(l3g4200d_remove),
 	.id_table = l3g4200d_id,

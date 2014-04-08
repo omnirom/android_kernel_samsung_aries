@@ -44,15 +44,12 @@
 #include <linux/slab.h>
 #include <linux/irq.h>
 #include <linux/miscdevice.h>
-#include <linux/mutex.h>
 #include <linux/gpio.h>
-#include <linux/earlysuspend.h>
 #include <mach/hardware.h>
 #include <plat/gpio-cfg.h>
 #include <mach/regs-gpio.h>
 #include <asm/uaccess.h>
 #include <linux/delay.h>
-#include <linux/platform_device.h>
 #include <linux/input.h>
 #include <linux/workqueue.h>
 #include <linux/freezer.h>
@@ -66,14 +63,10 @@
 #define I2C_DF_NOTIFY       0x01
 #define IRQ_COMPASS_INT IRQ_EINT(2) /* EINT(2) */
 
-static DEFINE_MUTEX(ak8973b_mutex);
-
-
 static struct i2c_client *this_client;
 
 struct ak8973b_data {
 	struct i2c_client		*client;
-	struct early_suspend	early_suspend;
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(open_wq);
@@ -348,14 +341,12 @@ static long akmd_ioctl(struct file *file, unsigned int cmd,
 	int ret = -1;
 	short mode; /* step_count,*/
 
-	mutex_lock(&ak8973b_mutex);
 	/* check cmd */
 	if(_IOC_TYPE(cmd) != AKMIO)
 	{
 #if DEBUG
 		printk("[Compass] cmd magic type error\n");
 #endif
-		mutex_unlock(&ak8973b_mutex);
 		return -ENOTTY;
 	}
 	if(_IOC_DIR(cmd) & _IOC_READ)
@@ -367,7 +358,6 @@ static long akmd_ioctl(struct file *file, unsigned int cmd,
 #if DEBUG
 		printk("[Compass] cmd access_ok error\n");
 #endif
-		mutex_unlock(&ak8973b_mutex);
 		return -EFAULT;
 	}
 
@@ -453,7 +443,7 @@ static long akmd_ioctl(struct file *file, unsigned int cmd,
 		default:
 			break;
 	}
-	mutex_unlock(&ak8973b_mutex);
+
 	return 0;
 }
 
@@ -589,7 +579,6 @@ MODULE_DEVICE_TABLE(i2c, ak8973_id);
 static struct i2c_driver ak8973b_i2c_driver = {
 	.driver = {
 		.name = "ak8973",
-		.owner = THIS_MODULE,
 		.pm = &ak8973b_pm_ops,
 	},
 	.probe = ak8973_probe,
