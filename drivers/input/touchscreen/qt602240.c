@@ -223,7 +223,7 @@ static ssize_t key_led_brightness_write(struct device *dev, struct device_attrib
 
 		if ( value >= 0 && value <= 3 ) {
 			key_led_brightness = value;
-			pr_info( "[TSP] keyled brightness - value: %d\n", key_led_brightness );
+			// pr_info( "[TSP] keyled brightness - value: %d\n", key_led_brightness );
 		} else {
 			pr_info( "%s: invalid input range %u\n", __FUNCTION__, value );
 		}
