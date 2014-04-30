@@ -1,5 +1,5 @@
 #!/stage1/busybox sh
-export _PATH="$PATH"
+_PATH="$PATH"
 export PATH=/stage1
 
 busybox cd /
@@ -8,17 +8,13 @@ exec >>boot.txt 2>&1
 busybox rm init
 busybox mount -t proc proc /proc
 busybox mount -t sysfs sysfs /sys
+busybox mount -t yaffs2 /dev/block/mtdblock2 /system
+busybox mount -t ext4 /dev/block/mmcblk0p3 /cache
 
 while ! busybox test -d /sys/dev/block/179:0 ; do
     busybox echo "waiting for internal mmc" >>boot.txt
     busybox sleep 1
 done
-
-/lvm/sbin/lvm vgscan --mknodes --ignorelockingfailure
-/lvm/sbin/lvm vgchange -aly --ignorelockingfailure
-
-busybox mount -t ext4 /dev/lvpool/system /system
-busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
 
 load_image=/stage1/boot.cpio
 
@@ -34,8 +30,8 @@ elif ! busybox test -e /system/build.prop ; then
     # emergency boot
     busybox echo "EMERGENCY BOOT" >>boot.txt
     busybox umount /cache
-    erase_image cache
-    busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
+    make_ext4fs -b 4096 -g 32768 -i 8192 -I 256 -a /cache /dev/block/mmcblk0p3
+    busybox mount -t ext4 /dev/block/mmcblk0p3 /cache
 
     if ! busybox test -e /cache/recovery ; then
         busybox mkdir /cache/recovery
