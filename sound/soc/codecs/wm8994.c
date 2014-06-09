@@ -252,8 +252,8 @@ static const char *mic_path[] = {"Main Mic", "Hands Free Mic", "BT Sco Mic", "MI
 static const char *fmradio_path[]   = { "FMR_OFF", "FMR_SPK", "FMR_HP", "FMR_SPK_MIX", "FMR_HP_MIX", "FMR_DUAL_MIX"};
 static const char *codec_tuning_control[] = {"OFF", "ON"};
 static const char *codec_status_control[] = {"FMR_VOL_0", "FMR_VOL_1", "FMR_OFF", "REC_OFF", "REC_ON"};
-static const char * voice_record_path[] = {"CALL_RECORDING_OFF", "CALL_RECORDING_MAIN", "CALL_RECORDING_SUB"};
-static const char * call_recording_channel[] ={"CH_OFF"," CH_UPLINK","CH_DOWNLINK","CH_UDLINK"};
+static const char *voice_record_path[] = {"CALL_RECORDING_OFF", "CALL_RECORDING_MAIN", "CALL_RECORDING_SUB"};
+static const char *call_recording_channel[] ={"CH_OFF"," CH_UPLINK","CH_DOWNLINK","CH_UDLINK"};
 
 
 
@@ -288,9 +288,6 @@ static int wm8994_set_mic_path(struct snd_kcontrol *kcontrol,
 	case 2:
 		wm8994->rec_path = BT_REC;
 		wm8994->universal_mic_path[wm8994->rec_path](codec);
-		break;
-	case 3:
-		wm8994_disable_rec_path(codec);
 		return 0;
 	default:
 		return -EINVAL;
@@ -311,11 +308,12 @@ static int wm8994_set_mic_path(struct snd_kcontrol *kcontrol,
 static int wm8994_get_path(struct snd_kcontrol *kcontrol,
 			   struct snd_ctl_elem_value *ucontrol)
 {
+/*
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 
 	ucontrol->value.integer.value[0] = wm8994->cur_path;
-
+*/
 	return 0;
 }
 
@@ -324,11 +322,14 @@ static int wm8994_set_path(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
+	struct soc_enum *mc = (struct soc_enum *)kcontrol->private_value;
 	int val;
 	int path_num = ucontrol->value.integer.value[0];
 
-	if (enable_audio_usb)
+	if (enable_audio_usb) {
+		DEBUG_LOG("Enable audio USB\n");
 		path_num = 11;
+	}
 
 	switch (path_num) {
 	case PLAYBACK_OFF:
@@ -643,6 +644,19 @@ static int wm8994_set_codec_status(struct snd_kcontrol *kcontrol,
 		tempstream.stream = SNDRV_PCM_STREAM_PLAYBACK;
 		wm8994_shutdown_codec(&tempstream, codec);
 		break;
+
+#ifdef FEATURE_VSUITE_RECOGNITION
+	// For vsuite voice recognition.
+	case CMD_VSUITE_RECOGNITION_DEACTIVE :
+		DEBUG_LOG("VSuite recognition Gain is deactivated!!");
+		wm8994->vsuite_recognition_active = REC_OFF;
+		break;
+
+	case CMD_VSUITE_RECOGNITION_ACTIVE :
+		DEBUG_LOG("VSuite recognition Gain is activated!!");
+		wm8994->vsuite_recognition_active = REC_ON;
+		break;
+#endif
 
 	default:
 		break;
@@ -1448,6 +1462,9 @@ static int wm8994_init(struct wm8994_priv *wm8994_private)
 	wm8994->testmode_config_flag = SEC_NORMAL;
 	wm8994->power_state = CODEC_OFF;
 	wm8994->recognition_active = REC_OFF;
+#ifdef FEATURE_VSUITE_RECOGNITION
+	wm8994->vsuite_recognition_active = REC_OFF;
+#endif
 	wm8994->ringtone_active = OFF;
 	wm8994_write(codec, WM8994_SOFTWARE_RESET, 0x0000);
 	wm8994_write(codec, WM8994_POWER_MANAGEMENT_1,

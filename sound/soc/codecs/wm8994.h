@@ -23,12 +23,15 @@
 
 /* Added belows codes by Samsung Electronics.*/
 
+//GNUX@2010.10.01 : Add for VSuite
+#define FEATURE_VSUITE_RECOGNITION
+
 #include "wm8994_def.h"
 
 #define WM8994_SYSCLK_MCLK     1
 #define WM8994_SYSCLK_FLL      2
 
-#define AUDIO_COMMON_DEBUG  0 
+#define AUDIO_COMMON_DEBUG  1
 
 #define DEACTIVE            0x00
 #define PLAYBACK_ACTIVE     0x01
@@ -48,6 +51,10 @@
 #define CMD_RECOGNITION_ACTIVE          5 // Distingush recognition gain. To use MIC gain for recognition.
 #define CMD_CALL_FLAG_CLEAR             6 // Call flag clear for shutdown - to reduce pop up noise.
 #define CMD_CALL_END                    7 // Codec off in call mode - to reduce pop up noise.
+#ifdef FEATURE_VSUITE_RECOGNITION
+#define CMD_VSUITE_RECOGNITION_DEACTIVE	8 // Distingush vsuite recognition gain. To use default MIC gain.
+#define CMD_VSUITE_RECOGNITION_ACTIVE	9 // Distingush vsuite recognition gain. To use MIC gain for recognition.
+#endif
 
 #define HPAMP_OFF       0x00
 #define HPAMP_PLAYBACK  0x01
@@ -60,7 +67,7 @@
 /*
  * Definitions of enum type
  */
-enum playback_path            { PLAYBACK_OFF, RCV, SPK, HP, HP_NO_MIC, BT, SPK_HP,RING_SPK, RING_HP, RING_NO_MIC, RING_SPK_HP, EXTRA_DOCK_SPEAKER, TV_OUT, HDMI_TV_OUT, HDMI_SPK, HDMI_DUAL };
+enum playback_path         { PLAYBACK_OFF, RCV, SPK, HP, HP_NO_MIC, BT, SPK_HP,RING_SPK, RING_HP, RING_NO_MIC, RING_SPK_HP, EXTRA_DOCK_SPEAKER, TV_OUT, HDMI_TV_OUT, HDMI_SPK, HDMI_DUAL };
 enum mic_path		       { MAIN, SUB, BT_REC, MIC_OFF };
 enum fmradio_path          { FMR_OFF, FMR_SPK, FMR_HP, FMR_SPK_MIX, FMR_HP_MIX, FMR_DUAL_MIX };
 enum fmradio_mix_path	   { FMR_MIX_OFF, FMR_MIX_HP, FMR_MIX_SPK, FMR_MIX_DUAL };
@@ -95,7 +102,10 @@ struct wm8994_priv {
 	enum fmradio_path fmradio_path;
 	enum fmradio_mix_path fmr_mix_path;
 	enum power_state power_state;
-	enum recognition recognition_active;		// for control gain to voice recognition.
+	enum state recognition_active;		// for control gain to voice recognition.
+#ifdef FEATURE_VSUITE_RECOGNITION
+	enum state vsuite_recognition_active; // for control gain to vsuite voice recognition.
+#endif
 	enum state ringtone_active;
 	enum voice_record_path call_record_path;
 	enum call_recording_channel call_record_ch;
