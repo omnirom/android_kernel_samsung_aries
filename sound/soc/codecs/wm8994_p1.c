@@ -119,6 +119,12 @@
 #define TUNING_RECOGNITION_MAIN_AIF1ADCL_VOL 0xC0 // 400h
 #define TUNING_RECOGNITION_MAIN_AIF1ADCR_VOL 0xC0 // 401h
 
+#ifdef FEATURE_VSUITE_RECOGNITION
+#define TUNING_VSUITE_RECOGNITION_MAIN_INPUTLINE_VOL 0x0F // 18h
+#define TUNING_VSUITE_RECOGNITION_MAIN_AIF1ADCL_VOL 0xC0 // 400h
+#define TUNING_VSUITE_RECOGNITION_MAIN_AIF1ADCR_VOL 0xC0 // 401h
+#endif
+
 // Ear MIC
 #define TUNING_RECORD_SUB_INPUTMIX_VOL 0x15 // 1Ah
 #define TUNING_RECORD_SUB_AIF1ADCL_VOL 0xC0 // 400h
@@ -132,6 +138,12 @@
 #define TUNING_RECOGNITION_SUB_AIF1ADCL_VOL 0xC0 // 400h
 #define TUNING_RECOGNITION_SUB_AIF1ADCR_VOL 0xC0 // 401h
 
+#ifdef FEATURE_VSUITE_RECOGNITION
+#define TUNING_VSUITE_RECOGNITION_SUB_INPUTMIX_VOL 0x12 // 1Ah
+#define TUNING_VSUITE_RECOGNITION_SUB_AIF1ADCL_VOL 0xC0 // 400h
+#define TUNING_VSUITE_RECOGNITION_SUB_AIF1ADCR_VOL 0xC0 // 401h
+#endif
+
 //BT MIC
 #define TUNING_RECORD_BT_AIF2DACR_VOL 0xC0 //501h
 #define TUNING_RECORD_BT_AIF2DACL_VOL 0xC0 //502h
@@ -143,6 +155,13 @@
 #define TUNING_RECOGNITION_BT_AIF2DACR_VOL 0xC0 //502h
 #define TUNING_RECOGNITION_BT_AIF1ADC1L_VOL 0xB8 //400h
 #define TUNING_RECOGNITION_BT_AIF1ADC1R_VOL 0xB8 //401h
+
+#ifdef FEATURE_VSUITE_RECOGNITION
+#define TUNING_VSUITE_RECOGNITION_BT_AIF2DACL_VOL 0xC0 //501h
+#define TUNING_VSUITE_RECOGNITION_BT_AIF2DACR_VOL 0xC0 //502h
+#define TUNING_VSUITE_RECOGNITION_BT_AIF1ADC1L_VOL 0xB8 //400h
+#define TUNING_VSUITE_RECOGNITION_BT_AIF1ADC1R_VOL 0xB8 //401h
+#endif
 
 // Call Main MIC
 #define TUNING_CALL_RCV_INPUTMIX_VOL 0x16 // 18h
@@ -966,6 +985,10 @@ void wm8994_record_headset_mic(struct snd_soc_codec *codec)
 			val &= ~(WM8994_IN1R_MUTE_MASK | WM8994_IN1R_VOL_MASK);	// Unmute IN1R
 			if (wm8994->recognition_active == REC_ON)
 				val |= (WM8994_IN1R_VU | TUNING_RECOGNITION_SUB_INPUTMIX_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+			else if (wm8994->vsuite_recognition_active == REC_ON)
+				val |= (WM8994_IN1R_VU | TUNING_VSUITE_RECOGNITION_SUB_INPUTMIX_VOL);
+#endif
 			else
 				val |= (WM8994_IN1R_VU | TUNING_RECORD_SUB_INPUTMIX_VOL);
 
@@ -982,6 +1005,10 @@ void wm8994_record_headset_mic(struct snd_soc_codec *codec)
 		val &= ~(WM8994_AIF1ADC1L_VOL_MASK);
 		if (wm8994->recognition_active == REC_ON)
 			val |= (TUNING_RECOGNITION_SUB_AIF1ADCL_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+		else if (wm8994->vsuite_recognition_active == REC_ON)
+			val |= (TUNING_VSUITE_RECOGNITION_SUB_AIF1ADCL_VOL);
+#endif
 		else
 			val |= (TUNING_RECORD_SUB_AIF1ADCL_VOL); // 0db
 
@@ -991,6 +1018,10 @@ void wm8994_record_headset_mic(struct snd_soc_codec *codec)
 		val &= ~(WM8994_AIF1ADC1R_VOL_MASK);
 		if (wm8994->recognition_active == REC_ON)
 			val |= (WM8994_AIF1ADC1_VU | TUNING_RECOGNITION_SUB_AIF1ADCR_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+		else if (wm8994->vsuite_recognition_active == REC_ON)
+			val |= (WM8994_AIF1ADC1_VU | TUNING_VSUITE_RECOGNITION_SUB_AIF1ADCR_VOL);
+#endif
 		else
 			val |= (WM8994_AIF1ADC1_VU | TUNING_RECORD_SUB_AIF1ADCR_VOL); // 0db
 		wm8994_write(codec, WM8994_AIF1_ADC1_RIGHT_VOLUME, val);
@@ -1117,7 +1148,11 @@ void wm8994_record_main_mic(struct snd_soc_codec *codec)
 		wm8994_write(codec, WM8994_POWER_MANAGEMENT_2, val);
 
 		//Enable HPF Filter for google voice search
-		if (wm8994->recognition_active == REC_ON) {
+		if (wm8994->recognition_active == REC_ON
+#ifdef FEATURE_VSUITE_RECOGNITION
+			|| wm8994->vsuite_recognition_active == REC_ON
+#endif
+		) {
 			val = wm8994_read(codec, WM8994_AIF1_ADC1_FILTERS);
 			val &= ~(WM8994_AIF1ADC1L_HPF_MASK | WM8994_AIF1ADC1R_HPF_MASK);
 			val |= (WM8994_AIF1ADC1L_HPF | WM8994_AIF1ADC1R_HPF);
@@ -1131,6 +1166,10 @@ void wm8994_record_main_mic(struct snd_soc_codec *codec)
 
 			if (wm8994->recognition_active == REC_ON)
 				val |= (WM8994_IN1L_VU |TUNING_RECOGNITION_MAIN_INPUTLINE_VOL); //volume
+#ifdef FEATURE_VSUITE_RECOGNITION
+			else if (wm8994->vsuite_recognition_active == REC_ON)
+				val |= (WM8994_IN1L_VU |TUNING_VSUITE_RECOGNITION_MAIN_INPUTLINE_VOL); //volume
+#endif
 			else
 				val |= (WM8994_IN1L_VU |TUNING_RECORD_MAIN_INPUTLINE_VOL); //volume
 
@@ -1154,6 +1193,10 @@ void wm8994_record_main_mic(struct snd_soc_codec *codec)
 
 		if (wm8994->recognition_active == REC_ON)
 			val |= (TUNING_RECOGNITION_MAIN_AIF1ADCL_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+		else if (wm8994->vsuite_recognition_active == REC_ON)
+			val |= (TUNING_VSUITE_RECOGNITION_MAIN_AIF1ADCL_VOL);
+#endif
 		else
 			val |= (TUNING_RECORD_MAIN_AIF1ADCL_VOL); // 0db
 
@@ -1164,6 +1207,10 @@ void wm8994_record_main_mic(struct snd_soc_codec *codec)
 
 		if (wm8994->recognition_active == REC_ON)
 			val |= (WM8994_AIF1ADC1_VU | TUNING_RECOGNITION_MAIN_AIF1ADCR_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+		else if (wm8994->vsuite_recognition_active == REC_ON)
+			val |= (WM8994_AIF1ADC1_VU | TUNING_VSUITE_RECOGNITION_MAIN_AIF1ADCR_VOL);
+#endif
 		else
 			val |= (WM8994_AIF1ADC1_VU | TUNING_RECORD_MAIN_AIF1ADCR_VOL); // 0db
 
@@ -1310,7 +1357,11 @@ void wm8994_record_bluetooth(struct snd_soc_codec *codec)
 		if (wm8994->testmode_config_flag == SEC_NORMAL) {
 			//Digital Paths
 			//Enable HPF Filter for google voice search
-			if (wm8994->recognition_active == REC_ON) {
+			if (wm8994->recognition_active == REC_ON
+#ifdef FEATURE_VSUITE_RECOGNITION
+				|| wm8994->vsuite_recognition_active == REC_ON
+#endif
+			) {
 				val = wm8994_read(codec,WM8994_AIF1_ADC1_FILTERS );
 				val &= ~(WM8994_AIF1ADC1L_HPF_MASK | WM8994_AIF1ADC1R_HPF_MASK);
 				//val |= (WM8994_AIF1ADC1L_HPF | WM8994_AIF1ADC1R_HPF); //HPF off
@@ -1322,6 +1373,10 @@ void wm8994_record_bluetooth(struct snd_soc_codec *codec)
 			val &= ~(WM8994_AIF1ADC1L_VOL_MASK);
 			if (wm8994->recognition_active == REC_ON)
 				val |= (TUNING_RECOGNITION_BT_AIF1ADC1L_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+			else if(wm8994->vsuite_recognition_active == REC_ON)
+				val |= (TUNING_VSUITE_RECOGNITION_BT_AIF1ADC1L_VOL);
+#endif
 			else
 				val |= (TUNING_RECORD_BT_AIF1ADC1L_VOL);
 			wm8994_write(codec, WM8994_AIF1_ADC1_LEFT_VOLUME, val);
@@ -1330,6 +1385,10 @@ void wm8994_record_bluetooth(struct snd_soc_codec *codec)
 			val &= ~(WM8994_AIF1ADC1R_VOL_MASK);
 			if (wm8994->recognition_active == REC_ON)
 				val |= (WM8994_AIF1ADC1_VU | TUNING_RECOGNITION_BT_AIF1ADC1R_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+			else if (wm8994->vsuite_recognition_active == REC_ON)
+				val |= (WM8994_AIF1ADC1_VU | TUNING_VSUITE_RECOGNITION_BT_AIF1ADC1R_VOL);
+#endif
 			else
 				val |= (WM8994_AIF1ADC1_VU | TUNING_RECORD_BT_AIF1ADC1R_VOL);
 			wm8994_write(codec, WM8994_AIF1_ADC1_RIGHT_VOLUME, val);
@@ -1339,6 +1398,10 @@ void wm8994_record_bluetooth(struct snd_soc_codec *codec)
 			val &= ~(WM8994_AIF2DACL_VOL_MASK);
 			if (wm8994->recognition_active == REC_ON)
 				val |= (TUNING_RECOGNITION_BT_AIF2DACL_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+			else if (wm8994->vsuite_recognition_active == REC_ON)
+				val |= (TUNING_VSUITE_RECOGNITION_BT_AIF2DACL_VOL);
+#endif
 			else
 				val |= (TUNING_RECORD_BT_AIF2DACL_VOL);
 			wm8994_write(codec, WM8994_AIF2_DAC_LEFT_VOLUME, val);
@@ -1347,6 +1410,10 @@ void wm8994_record_bluetooth(struct snd_soc_codec *codec)
 			val &= ~(WM8994_AIF2DACR_VOL_MASK);
 			if (wm8994->recognition_active == REC_ON)
 				val |= (WM8994_AIF2DAC_VU | TUNING_RECOGNITION_BT_AIF2DACR_VOL);
+#ifdef FEATURE_VSUITE_RECOGNITION
+			else if (wm8994->vsuite_recognition_active == REC_ON)
+				val |= (WM8994_AIF2DAC_VU | TUNING_VSUITE_RECOGNITION_BT_AIF2DACR_VOL);
+#endif
 			else
 				val |= (WM8994_AIF2DAC_VU | TUNING_RECORD_BT_AIF2DACR_VOL);
 			wm8994_write(codec, WM8994_AIF2_DAC_RIGHT_VOLUME, val);
