@@ -20,13 +20,13 @@ done
 busybox mount -t ext4 /dev/lvpool/system /system
 busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
 
-image=/stage1/ramdisk.img
+image=/stage1/ramdisk.cpio
 
 if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmdline ; then
 	# recovery boot
 	busybox echo 'RECOVERY BOOT' >>boot.txt
 	busybox rm -fr /cache/.startrecovery
-	image=/stage1/ramdisk-recovery.img
+	image=/stage1/ramdisk-recovery.cpio
 	busybox echo "loading ramdisk-recovery.img" >>boot.txt
 
 	# disable lpm
@@ -57,7 +57,7 @@ elif ! busybox test -e /system/build.prop ; then
 	fi
 
 	busybox echo "loading ramdisk-recovery.img" >>boot.txt
-	image=/stage1/ramdisk-recovery.img
+	image=/stage1/ramdisk-recovery.cpio
 
 	# disable lpm
 	busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
@@ -75,7 +75,7 @@ busybox umount /cache
 busybox umount /system
 busybox rmdir /sdcard
 
-busybox zcat $image | busybox cpio -i
+busybox cpio -ui < $image
 
 if busybox grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
 	# low power mode

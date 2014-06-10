@@ -20,13 +20,13 @@ done
 busybox mount -t ext4 /dev/lvpool/system /system
 busybox mount -t ext4 /dev/block/mmcblk0p3 /cache
 
-image=/stage1/ramdisk.img
+image=/stage1/ramdisk.cpio
 
 if busybox test -e /cache/.startrecovery || \
 	busybox grep -q bootmode=2 /proc/cmdline ; then
 	# recovery boot
 	busybox rm -fr /cache/.startrecovery
-	image=/stage1/ramdisk-recovery.img
+	image=/stage1/ramdisk-recovery.cpio
 
 	# disable lpm
 	busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
@@ -45,7 +45,7 @@ elif ! busybox test -e /system/build.prop ; then
 		busybox echo "install_zip(\"`echo $UPDATE`\");" > /cache/recovery/extendedcommand
 	fi
 
-	image=/stage1/ramdisk-recovery.img
+	image=/stage1/ramdisk-recovery.cpio
 
 	# disable lpm
 	busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
@@ -56,7 +56,7 @@ busybox umount /system
 busybox umount /sdcard
 busybox rmdir /sdcard
 
-busybox zcat $image | busybox cpio -i
+busybox cpio -ui < $image
 
 if busybox grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
 	# low power mode
