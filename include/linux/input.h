@@ -114,31 +114,6 @@ struct input_keymap_entry {
 #define EVIOCGUNIQ(len)		_IOC(_IOC_READ, 'E', 0x08, len)		/* get unique identifier */
 #define EVIOCGPROP(len)		_IOC(_IOC_READ, 'E', 0x09, len)		/* get device properties */
 
-/**
- * EVIOCGMTSLOTS(len) - get MT slot values
- *
- * The ioctl buffer argument should be binary equivalent to
- *
- * struct input_mt_request_layout {
- *	__u32 code;
- *	__s32 values[num_slots];
- * };
- *
- * where num_slots is the (arbitrary) number of MT slots to extract.
- *
- * The ioctl size argument (len) is the size of the buffer, which
- * should satisfy len = (num_slots + 1) * sizeof(__s32).  If len is
- * too small to fit all available slots, the first num_slots are
- * returned.
- *
- * Before the call, code is set to the wanted ABS_MT event type. On
- * return, values[] is filled with the slot values for the specified
- * ABS_MT code.
- *
- * If the request code is not an ABS_MT value, -EINVAL is returned.
- */
-#define EVIOCGMTSLOTS(len)	_IOC(_IOC_READ, 'E', 0x0a, len)
-
 #define EVIOCGKEY(len)		_IOC(_IOC_READ, 'E', 0x18, len)		/* get global key state */
 #define EVIOCGLED(len)		_IOC(_IOC_READ, 'E', 0x19, len)		/* get all LEDs */
 #define EVIOCGSND(len)		_IOC(_IOC_READ, 'E', 0x1a, len)		/* get all sounds status */
@@ -156,8 +131,6 @@ struct input_keymap_entry {
 
 #define EVIOCGSUSPENDBLOCK	_IOR('E', 0x91, int)			/* get suspend block enable */
 #define EVIOCSSUSPENDBLOCK	_IOW('E', 0x91, int)			/* set suspend block enable */
-
-#define EVIOCSCLOCKID		_IOW('E', 0xa0, int)			/* Set clockid to be used for timestamps */
 
 /*
  * Device properties and quirks
@@ -198,8 +171,6 @@ struct input_keymap_entry {
 #define SYN_CONFIG		1
 #define SYN_MT_REPORT		2
 #define SYN_DROPPED		3
-#define SYN_TIME_SEC		4
-#define SYN_TIME_NSEC		5
 
 /*
  * Keys and buttons
@@ -1308,9 +1279,7 @@ struct input_dev {
 	struct mutex mutex;
 
 	unsigned int users;
-	unsigned int users_private;
 	bool going_away;
-	bool disabled;
 
 	bool sync;
 
@@ -1641,7 +1610,7 @@ struct ff_device {
 	struct file *effect_owners[];
 };
 
-int input_ff_create(struct input_dev *dev, unsigned int max_effects);
+int input_ff_create(struct input_dev *dev, int max_effects);
 void input_ff_destroy(struct input_dev *dev);
 
 int input_ff_event(struct input_dev *dev, unsigned int type, unsigned int code, int value);
