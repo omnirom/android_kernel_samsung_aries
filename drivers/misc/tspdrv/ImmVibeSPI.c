@@ -126,6 +126,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Terminate(void)
 /*
 ** Called by the real-time loop to set PWM duty cycle, and enable amp if required
 */
+#if 0
 IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Set(VibeUInt8 nActuatorIndex, VibeInt8 nForce)
 {
 	int pwm_duty=g_PWM_duty_max/2 + ((g_PWM_duty_max/2 - 2) * nForce)/127;
@@ -139,7 +140,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Set(VibeUInt8 nActuatorIndex, VibeI
 
 	return VIBE_S_SUCCESS;
 }
-
+#endif
 /*
 ** Called by the real-time loop to set force output, and enable amp if required
 */
