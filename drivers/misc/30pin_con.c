@@ -173,6 +173,8 @@ static int connector_detect_change(void)
 static void _detected(struct acc_con_info *acc, int device, bool connected)
 {
 
+	enable_audio_usb = false;
+
 	if (connected) {
 		switch(device) {
 #if defined(CONFIG_USB_S3C_OTG_HOST) || defined(CONFIG_USB_DWC_OTG)
@@ -215,10 +217,9 @@ static void _detected(struct acc_con_info *acc, int device, bool connected)
 			break;
 #endif
 		case P30_EARJACK_WITH_DOCK:
-			enable_audio_usb = false;
+			//to do
 			break;
 		case P30_ANAL_TV_OUT:
-			enable_audio_usb = false;
 			TVout_LDO_ctrl(false);
 			break;
 #ifdef CONFIG_KEYBOARD_P1
@@ -494,7 +495,6 @@ static int acc_con_probe(struct platform_device *pdev)
 {
 	struct acc_con_info *acc;
 	int retval = 0;
-
 	pr_info("[30pin] %s\n", __func__);
 
 	acc = kzalloc(sizeof(*acc), GFP_KERNEL);
@@ -503,7 +503,6 @@ static int acc_con_probe(struct platform_device *pdev)
 
 	acc->current_dock = DOCK_NONE;
 	acc->current_accessory = ACCESSORY_NONE;
-	enable_audio_usb = false;
 	dev_set_drvdata(&pdev->dev, acc);
 	acc->acc_dev = &pdev->dev;
 
