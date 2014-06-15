@@ -158,7 +158,6 @@ struct wifi_mem_prealloc {
 #endif
 
 static DEFINE_SPINLOCK(mic_bias_lock);
-static bool wm8994_mic_bias;
 static bool jack_mic_bias;
 struct sec_battery_callbacks *callbacks;
 struct max17042_callbacks *max17042_cb;
@@ -2650,8 +2649,8 @@ static struct s3c_platform_jpeg jpeg_plat __initdata = {
 
 static void set_shared_mic_bias(void)
 {
-	gpio_set_value(GPIO_EAR_MICBIAS0_EN, wm8994_mic_bias || jack_mic_bias);
-	gpio_set_value(GPIO_EAR_MICBIAS_EN, wm8994_mic_bias || jack_mic_bias);
+	gpio_set_value(GPIO_EAR_MICBIAS0_EN, jack_mic_bias);
+	gpio_set_value(GPIO_EAR_MICBIAS_EN, jack_mic_bias);
 }
 
 static void sec_jack_set_micbias_state(bool on)
@@ -3240,6 +3239,29 @@ static struct platform_device sec_device_jack = {
 	.id			= 1, /* will be used also for gpio_event id */
 	.dev.platform_data	= &sec_jack_pdata,
 };
+
+static void __init sec_jack_init(void)
+{
+	if (gpio_is_valid(GPIO_EAR_MICBIAS0_EN)) {
+		if (gpio_request(GPIO_EAR_MICBIAS0_EN, "MP05"))
+			printk(KERN_ERR "Failed to request GPIO_EAR_MICBIAS0_EN! \n");
+		gpio_direction_output(GPIO_EAR_MICBIAS0_EN, 0);
+	}
+	s3c_gpio_setpull(GPIO_EAR_MICBIAS0_EN, S3C_GPIO_PULL_NONE);
+	s3c_gpio_slp_cfgpin(GPIO_EAR_MICBIAS0_EN, S3C_GPIO_SLP_PREV);
+	s3c_gpio_slp_setpull_updown(GPIO_EAR_MICBIAS0_EN, S3C_GPIO_PULL_NONE);
+
+	if (gpio_is_valid(GPIO_EAR_MICBIAS_EN)) {
+		if (gpio_request(GPIO_EAR_MICBIAS_EN, "MP01"))
+			printk(KERN_ERR "Failed to request GPIO_EAR_MICBIAS_EN! \n");
+		gpio_direction_output(GPIO_EAR_MICBIAS_EN, 0);
+	}
+	s3c_gpio_setpull(GPIO_EAR_MICBIAS_EN, S3C_GPIO_PULL_NONE);
+	s3c_gpio_slp_cfgpin(GPIO_EAR_MICBIAS_EN, S3C_GPIO_SLP_PREV);
+	s3c_gpio_slp_setpull_updown(GPIO_EAR_MICBIAS_EN, S3C_GPIO_PULL_NONE);
+
+	printk("EAR_MICBIAS Init\n");
+}
 
  /* touch screen device init */
 static void __init qt_touch_init(void)
@@ -7774,6 +7796,8 @@ static void __init p1_machine_init(void)
 	uart_switch_init();
 
 	p1_init_wifi_mem();
+
+	sec_jack_init();
 
 	qt_touch_init();
 
