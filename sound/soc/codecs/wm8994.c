@@ -502,7 +502,7 @@ static int wm8994_set_fmradio_path(struct snd_kcontrol *kcontrol,
 	switch (path_num) {
 	case FMR_OFF:
 		DEBUG_LOG("Switching off output path");
-		wm8994_disable_fmradio_path(codec);
+		wm8994_disable_fmradio_path(codec, FMR_OFF);
 		break;
 	case FMR_SPK:
 		DEBUG_LOG("routing  fmradio path to %s", mc->texts[path_num] );
@@ -1370,7 +1370,7 @@ static void wm8994_shutdown_codec(struct snd_pcm_substream *substream,
 			wm8994->codec_state, wm8994->stream_state);
 
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-		wm8994_disable_rec_path(codec);
+		wm8994_disable_rec_path(codec, wm8994->rec_path);
 		wm8994->codec_state &= ~(CAPTURE_ACTIVE);
 	} else {
 		if (wm8994->codec_state & CALL_ACTIVE) {
@@ -1381,7 +1381,7 @@ static void wm8994_shutdown_codec(struct snd_pcm_substream *substream,
 			val |= (WM8994_AIF1DAC1_MUTE);
 			wm8994_write(codec, WM8994_AIF1_DAC1_FILTERS_1, val);
 		} else if (wm8994->codec_state & CAPTURE_ACTIVE) {
-			wm8994_disable_playback_path(codec);
+			wm8994_disable_playback_path(codec, wm8994->cur_path);
 		} else if (wm8994->codec_state & FMRADIO_ACTIVE) {
 			// FM radio deactive
 			int val;

@@ -135,10 +135,10 @@ int audio_init(void);
 int audio_power(int en);
 
 void wm8994_set_off(struct snd_soc_codec *codec);
-void wm8994_disable_playback_path(struct snd_soc_codec *codec);
-void wm8994_disable_fmradio_path(struct snd_soc_codec *codec);
-void wm8994_disable_rec_path(struct snd_soc_codec *codec);
-void  wm8994_record_main_mic( struct snd_soc_codec *codec);
+void wm8994_disable_playback_path(struct snd_soc_codec *codec, enum playback_path path);
+void wm8994_disable_fmradio_path(struct snd_soc_codec *codec, enum fmradio_path path);
+void wm8994_disable_rec_path(struct snd_soc_codec *codec,enum mic_path rec_path);
+void wm8994_record_main_mic( struct snd_soc_codec *codec);
 void wm8994_record_headset_mic( struct snd_soc_codec *codec);
 void wm8994_record_bluetooth(struct snd_soc_codec *codec);
 void wm8994_set_playback_receiver(struct snd_soc_codec *codec);
