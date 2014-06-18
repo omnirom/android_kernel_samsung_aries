@@ -399,6 +399,7 @@ static void acc_con_worker(struct work_struct *work)
 	if (cur_state != acc->dock_state) {
 		if (1 == cur_state) {
 			pr_info("[30pin] Docking station detatched");
+			enable_audio_usb = false;
 			acc->dock_state = cur_state;
 			acc_dock_check(acc, false);
 		} else if (0 == cur_state) {
@@ -422,6 +423,7 @@ static void acc_id_worker(struct work_struct *work)
 	if (acc_id_val != acc->acc_state) {
 		if (1 == acc_id_val) {
 			pr_info("[30pin] Accessory detached");
+			enable_audio_usb = false;
 			acc->acc_state = acc_id_val;
 			acc_notified(acc, false);
 			irq_set_irq_type(IRQ_DOCK_INT, IRQ_TYPE_EDGE_FALLING);
