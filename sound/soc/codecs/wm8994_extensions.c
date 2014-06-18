@@ -17,13 +17,13 @@
 #include "wm8994_extensions.h"
 
 #ifndef MODULE
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35) && !defined(GALAXY_TAB)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35) && !defined(GALAXY_TAB) && !defined(CONFIG_MACH_P1)
 #include "wm8994_samsung.h"
 #else
 #include "wm8994.h"
 #endif
 #else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35) && !defined(GALAXY_TAB)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35) && !defined(GALAXY_TAB) && !defined(CONFIG_MACH_P1)
 #include "../wm8994_samsung.h"
 #else
 #include "../wm8994.h"
@@ -53,7 +53,7 @@ unsigned short origin_recgain;
 unsigned short origin_recgain_mixer;
 #endif
 
-#if defined(NEXUS_S) || defined(GALAXY_TAB)
+#ifdef NEXUS_S
 bool speaker_tuning = false;
 #endif
 
@@ -418,11 +418,12 @@ bool is_path(int unified_path)
 	switch (unified_path) {
 	// speaker
 	case SPEAKER:
-#ifdef GALAXY_TAB
+#if defined(GALAXY_TAB) || defined(CONFIG_MACH_P1)
 		return (wm8994->cur_path == SPK
 			|| wm8994->cur_path == RING_SPK
 			|| wm8994->fmradio_path == FMR_SPK
-			|| wm8994->fmradio_path == FMR_SPK_MIX);
+			|| wm8994->fmradio_path == FMR_SPK_MIX
+		);
 #else
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
 		return (wm8994->cur_path == SPK
@@ -438,7 +439,11 @@ bool is_path(int unified_path)
 
 #ifdef NEXUS_S
 		return (wm8994->cur_path == HP
-			|| wm8994->cur_path == HP_NO_MIC);
+			|| wm8994->cur_path == HP_NO_MIC
+#ifdef CONFIG_MACH_P1
+			|| wm8994->fmradio_path == FMR_HP
+#endif
+		);
 #else
 #ifdef GALAXY_TAB
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
@@ -483,7 +488,7 @@ bool is_path(int unified_path)
 #ifdef GALAXY_TAB_TEGRA
 		return false;
 #else
-#ifdef GALAXY_TAB
+#if defined(GALAXY_TAB) || defined(CONFIG_MACH_P1)
 		return false;
 #else
 		return (wm8994->codec_state & FMRADIO_ACTIVE)
@@ -519,7 +524,7 @@ bool is_path_media_or_fm_no_call_no_record()
 	return false;
 }
 
-#if defined(NEXUS_S) || defined(GALAXY_TAB)
+#ifdef NEXUS_S
 void update_speaker_tuning(bool with_mute)
 {
 	DECLARE_WM8994(codec);
@@ -1003,7 +1008,7 @@ static ssize_t name##_store(struct device *dev, struct device_attribute *attr, \
 	return size;							       \
 }
 
-#if defined(NEXUS_S) || defined(GALAXY_TAB)
+#ifdef NEXUS_S
 DECLARE_BOOL_SHOW(speaker_tuning);
 DECLARE_BOOL_STORE_UPDATE_WITH_MUTE(speaker_tuning,
 				    update_speaker_tuning,
@@ -1659,7 +1664,7 @@ static DEVICE_ATTR(headphone_amplifier_level, S_IRUGO | S_IWUGO,
 		   headphone_amplifier_level_store);
 #endif
 
-#if defined(NEXUS_S) || defined(GALAXY_TAB)
+#ifdef NEXUS_S
 static DEVICE_ATTR(speaker_tuning, S_IRUGO | S_IWUGO,
 		   speaker_tuning_show,
 		   speaker_tuning_store);
@@ -1944,7 +1949,7 @@ void wm8994_extensions_record_main_mic()
 }
 #endif
 
-#if defined(NEXUS_S) || defined(GALAXY_TAB)
+#ifdef NEXUS_S
 void wm8994_extensions_playback_speaker()
 {
 	// global kill switch

@@ -13,8 +13,8 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <linux/delay.h>
-#include <linux/io.h>
-#include <linux/gpio.h>
+#include <asm/io.h>
+#include <asm/gpio.h>
 #include <plat/gpio-cfg.h>
 #include <plat/map-base.h>
 #include <mach/regs-clock.h>
@@ -2650,9 +2650,7 @@ void wm8994_set_voicecall_headphone(struct snd_soc_codec *codec)
 
 	/*Digital Path Enables and Unmutes*/
 	wm8994_write(codec, WM8994_DAC2_LEFT_MIXER_ROUTING, WM8994_ADC1_TO_DAC2L);
-	wm8994_write(codec, WM8994_DAC2_MIXER_VOLUMES, 0x01EF);
-	wm8994_write(codec, WM8994_DAC2_LEFT_VOLUME, 0x01FF);
-	wm8994_write(codec, WM8994_DAC2_RIGHT_VOLUME, 0x01FF);
+	wm8994_write(codec, WM8994_DAC2_MIXER_VOLUMES, 0x000C);
 	wm8994_write(codec, WM8994_SIDETONE, 0x01C0);
 
 	/*Analogue Input Configuration*/
@@ -2921,7 +2919,7 @@ void wm8994_set_voicecall_headset(struct snd_soc_codec *codec)
 	val |= (WM8994_DAC1_VU | TUNING_DAC1R_VOL); //0 db volume
 	wm8994_write(codec,WM8994_DAC1_RIGHT_VOLUME,val);
 
-	wm8994_write(codec,WM8994_DAC2_LEFT_VOLUME, 0x01FF);
+	wm8994_write(codec,WM8994_DAC2_LEFT_VOLUME, 0x01C0);
 
 	wm8994_write(codec,WM8994_AIF1_DAC1_FILTERS_1, 0x0000);
 	wm8994_write(codec,WM8994_AIF2_DAC_FILTERS_1, 0x0000);

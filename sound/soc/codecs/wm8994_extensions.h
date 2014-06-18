@@ -8,16 +8,18 @@
 
 #define WM8994_EXTENSIONS_VERSION 10
 
-#if defined(CONFIG_MACH_HERRING) || defined (CONFIG_SAMSUNG_GALAXYS)	       \
-	|| defined (CONFIG_SAMSUNG_GALAXYSB)				       \
-	|| defined (CONFIG_SAMSUNG_CAPTIVATE)				       \
-	|| defined (CONFIG_SAMSUNG_VIBRANT)				       \
-	|| defined (CONFIG_SAMSUNG_FASCINATE)				       \
+#if defined(CONFIG_MACH_HERRING) \
+	|| defined (CONFIG_SAMSUNG_GALAXYS)   \
+	|| defined (CONFIG_MACH_P1)           \
+	|| defined (CONFIG_SAMSUNG_GALAXYSB)  \
+	|| defined (CONFIG_SAMSUNG_CAPTIVATE) \
+	|| defined (CONFIG_SAMSUNG_VIBRANT)   \
+	|| defined (CONFIG_SAMSUNG_FASCINATE) \
 	|| defined (CONFIG_SAMSUNG_EPIC)
 #define NEXUS_S
 #endif
 
-#if defined(CONFIG_FB_S3C_AMS701KA) || defined(CONFIG_KOR_MODEL_M180S) || defined (CONFIG_MACH_P1)
+#if defined(CONFIG_FB_S3C_AMS701KA) || defined(CONFIG_KOR_MODEL_M180S)
 #define GALAXY_TAB
 #endif
 

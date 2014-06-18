@@ -35,10 +35,8 @@
 #include <sound/tlv.h>
 #include <sound/initval.h>
 #include <asm/div64.h>
-#include <linux/io.h>
+#include <asm/io.h>
 #include <plat/map-base.h>
-#include <linux/gpio.h>
-#include <plat/gpio-cfg.h>
 #include <mach/regs-clock.h>
 #include "wm8994.h"
 
