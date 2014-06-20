@@ -174,6 +174,9 @@ static void android_work(struct work_struct *data)
 	char **uevent_envp = NULL;
 	unsigned long flags;
 
+	printk(KERN_DEBUG "usb: %s config=%p,connected=%d,sw_connected=%d\n",
+			__func__, cdev->config, dev->connected,
+			dev->sw_connected);
 	spin_lock_irqsave(&cdev->lock, flags);
         if (cdev->config)
 		uevent_envp = configured;
@@ -911,6 +914,7 @@ android_bind_enabled_functions(struct android_dev *dev,
 	int ret;
 
 	list_for_each_entry(f, &dev->enabled_functions, enabled_list) {
+		printk(KERN_DEBUG "usb: %s f:%s\n", __func__, f->name);
 		ret = f->bind_config(f, c);
 		if (ret) {
 			pr_err("%s: %s failed", __func__, f->name);
@@ -936,6 +940,7 @@ static int android_enable_function(struct android_dev *dev, char *name)
 {
 	struct android_usb_function **functions = dev->functions;
 	struct android_usb_function *f;
+	printk(KERN_DEBUG "usb: %s name=%s\n", __func__, name);
 	while ((f = *functions++)) {
 		if (!strcmp(name, f->name)) {
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
@@ -957,13 +962,17 @@ functions_show(struct device *pdev, struct device_attribute *attr, char *buf)
 
 	mutex_lock(&dev->mutex);
 
-	list_for_each_entry(f, &dev->enabled_functions, enabled_list)
+	list_for_each_entry(f, &dev->enabled_functions, enabled_list) {
+		printk(KERN_DEBUG "usb: %s enabled_func=%s\n",
+				__func__, f->name);
 		buff += sprintf(buff, "%s,", f->name);
+	}
 
 	mutex_unlock(&dev->mutex);
 
 	if (buff != buf)
 		*(buff-1) = '\n';
+
 	return buff - buf;
 }
 
@@ -985,6 +994,7 @@ functions_store(struct device *pdev, struct device_attribute *attr,
 
 	INIT_LIST_HEAD(&dev->enabled_functions);
 
+	printk(KERN_DEBUG "usb: %s buff=%s\n", __func__, buff);
 	strncpy(buf, buff, sizeof(buf));
 	b = strim(buf);
 
@@ -1006,6 +1016,7 @@ static ssize_t enable_show(struct device *pdev, struct device_attribute *attr,
 			   char *buf)
 {
 	struct android_dev *dev = dev_get_drvdata(pdev);
+	printk(KERN_DEBUG "usb: %s dev->enabled=%d\n", __func__,  dev->enabled);
 	return sprintf(buf, "%d\n", dev->enabled);
 }
 
@@ -1020,6 +1031,8 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 	mutex_lock(&dev->mutex);
 
 	sscanf(buff, "%d", &enabled);
+	printk(KERN_DEBUG "usb: %s enabled=%d, !dev->enabled=%d\n",
+			__func__, enabled, !dev->enabled);
 	if (enabled && !dev->enabled) {
 		/* update values in composite driver's copy of device descriptor */
 		cdev->desc.idVendor = device_desc.idVendor;
@@ -1068,6 +1081,7 @@ static ssize_t state_show(struct device *pdev, struct device_attribute *attr,
 		state = "CONNECTED";
 	spin_unlock_irqrestore(&cdev->lock, flags);
 out:
+	printk(KERN_DEBUG "usb: %s buf=%s\n", __func__, state);
 	return sprintf(buf, "%s\n", state);
 }
 
@@ -1166,6 +1180,7 @@ static int android_bind(struct usb_composite_dev *cdev)
 	struct usb_gadget	*gadget = cdev->gadget;
 	int			gcnum, id, ret;
 
+	printk(KERN_DEBUG "usb: %s disconnect\n", __func__);
 	usb_gadget_disconnect(gadget);
 
 	ret = android_init_functions(dev->functions, cdev);
@@ -1222,7 +1237,7 @@ static int android_bind(struct usb_composite_dev *cdev)
 static int android_usb_unbind(struct usb_composite_dev *cdev)
 {
 	struct android_dev *dev = _android_dev;
-
+	printk(KERN_DEBUG "usb: %s\n", __func__);
 	cancel_work_sync(&dev->work);
 	android_cleanup_functions(dev->functions);
 	return 0;
@@ -1328,6 +1343,7 @@ static int __init init(void)
 	struct android_dev *dev;
 	int err;
 
+	printk(KERN_DEBUG "%s\n", __func__);
 	android_class = class_create(THIS_MODULE, "android_usb");
 	if (IS_ERR(android_class))
 		return PTR_ERR(android_class);
