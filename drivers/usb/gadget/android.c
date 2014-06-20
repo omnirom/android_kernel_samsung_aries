@@ -1054,6 +1054,10 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 				f->disable(f);
 		}
 		dev->enabled = false;
+		mdelay(5);
+	} else if (!enabled) {
+		usb_gadget_disconnect(cdev->gadget);
+		dev->enabled = false;
 	} else {
 		pr_err("android_usb: already %s\n",
 				dev->enabled ? "enabled" : "disabled");
