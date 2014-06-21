@@ -22,7 +22,10 @@
  *
  */
 enum perf_level {
-	OC0, // 1.2GHz
+	OC0, // 1.4GHz
+	OC1, // 1.3GHz
+	OC2, // 1.2GHz
+	OC3, // 1.1GHz
 	L0,  // 1GHz
 	L1,  // 800MHz
 	L2,  // 400MHz

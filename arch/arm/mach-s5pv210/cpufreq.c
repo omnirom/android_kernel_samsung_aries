@@ -34,7 +34,10 @@ static struct cpufreq_freqs freqs;
 static DEFINE_MUTEX(set_freq_lock);
 
 /* APLL M,P,S values */
+#define APLL_VAL_1400	((1 << 31) | (175 << 16) | (3 << 8) | 1)
+#define APLL_VAL_1300	((1 << 31) | (325 << 16) | (6 << 8) | 1)
 #define APLL_VAL_1200	((1 << 31) | (150 << 16) | (3 << 8) | 1)
+#define APLL_VAL_1100	((1 << 31) | (275 << 16) | (6 << 8) | 1)
 #define APLL_VAL_1000	((1 << 31) | (125 << 16) | (3 << 8) | 1)
 #define APLL_VAL_800	((1 << 31) | (100 << 16) | (3 << 8) | 1)
 
@@ -75,7 +78,10 @@ enum s5pv210_dmc_port {
 };
 
 static struct cpufreq_frequency_table s5pv210_freq_table[] = {
-	{OC0, 1200*1000},
+	{OC0, 1400*1000},
+	{OC1, 1300*1000},
+	{OC2, 1200*1000},
+	{OC3, 1100*1000},
 	{L0,  1000*1000},
 	{L1,   800*1000},
 	{L2,   400*1000},
@@ -102,33 +108,45 @@ const unsigned long arm_volt_max = ARMVOLTMAX;
 const unsigned long int_volt_max = INTVOLTMAX;
 
 static struct s5pv210_dvs_conf dvs_conf[] = {
-	[OC0] = { /* 1.2GHz */
+	[OC3] = { /* 1.4GHz */
+		.arm_volt   = DVSARM0,
+		.int_volt   = DVSINT0,
+	},
+	[OC2] = { /* 1.3GHz */
+		.arm_volt   = DVSARM1,
+		.int_volt   = DVSINT0,
+	},
+	[OC1] = { /* 1.2GHz */
 		.arm_volt   = DVSARM2,
+		.int_volt   = DVSINT1,
+	},
+	[OC0] = { /* 1.1GHz */
+		.arm_volt   = DVSARM3,
 		.int_volt   = DVSINT1,
 	},
 	[L0] = { /* 1.0GHz */
 		.arm_volt   = DVSARM4,
-		.int_volt   = DVSINT3,
+		.int_volt   = DVSINT2,
 	},
 	[L1] = { /* 800MHz */
 		.arm_volt   = DVSARM5,
-		.int_volt   = DVSINT3,
+		.int_volt   = DVSINT2,
 	},
 	[L2] = { /* 400MHz */
 		.arm_volt   = DVSARM6,
-		.int_volt   = DVSINT3
+		.int_volt   = DVSINT2
 	},
 	[L3] = { /* 200MHz */
 		.arm_volt   = DVSARM7,
-		.int_volt   = DVSINT3,
+		.int_volt   = DVSINT2,
 	},
 	[L4] = { /* 100MHz */
 		.arm_volt   = DVSARM7,
-		.int_volt   = DVSINT4,
+		.int_volt   = DVSINT3,
 	},
 };
 
-static u32 clkdiv_val[6][11] = {
+static u32 clkdiv_val[9][11] = {
 	/*
 	 * Clock divider value for following
 	 * { APLL, A2M, HCLK_MSYS, PCLK_MSYS,
@@ -136,7 +154,13 @@ static u32 clkdiv_val[6][11] = {
 	 *   ONEDRAM, MFC, G3D }
 	 */
 
-	/* OC0 : [1200/200/100][166/83][133/66][200/200] */
+	/* OC0 : [1400/200/200/100][166/83][133/66][200/200] */
+	{0, 6, 6, 1, 3, 1, 4, 1, 3, 0, 0},
+	/* OC1 : [1300/200/200/100][166/83][133/66][200/200] */
+	{0, 5.5, 5.5, 1, 3, 1, 4, 1, 3, 0, 0},
+	/* OC2 : [1200/200/100][166/83][133/66][200/200] */
+	{0, 5, 5, 1, 3, 1, 4, 1, 3, 0, 0},
+	/* OC3 : [1100/200/200/100][166/83][133/66][200/200] */
 	{0, 5, 5, 1, 3, 1, 4, 1, 3, 0, 0},
 	/* L0 : [1000/200/100][166/83][133/66][200/200] */
 	{0, 4, 4, 1, 3, 1, 4, 1, 3, 0, 0},
@@ -333,6 +357,8 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 	/* Check if there need to change PLL */
 	if ((index <= L0) || (freqs.old >= s5pv210_freq_table[L0].frequency))
 		pll_changing = 1;
+	else if ((index == L1) || (freqs.old == s5pv210_freq_table[L1].frequency)) // 800MHz
+		pll_changing = 1;
 
 	/* Check if there need to change System bus clock */
 	if ((index == L4) || (freqs.old == s5pv210_freq_table[L4].frequency))
@@ -452,7 +478,16 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 		 */
 		switch (index) {
 		case OC0:
+			__raw_writel(APLL_VAL_1400, S5P_APLL_CON);
+			break;
+		case OC1:
+			__raw_writel(APLL_VAL_1300, S5P_APLL_CON);
+			break;
+		case OC2:
 			__raw_writel(APLL_VAL_1200, S5P_APLL_CON);
+			break;
+		case OC3:
+			__raw_writel(APLL_VAL_1100, S5P_APLL_CON);
 			break;
 		case L0:
 			__raw_writel(APLL_VAL_1000, S5P_APLL_CON);
