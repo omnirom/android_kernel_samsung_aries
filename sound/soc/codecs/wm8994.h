@@ -31,7 +31,7 @@
 #define WM8994_SYSCLK_MCLK     1
 #define WM8994_SYSCLK_FLL      2
 
-#define AUDIO_COMMON_DEBUG  1
+#define AUDIO_COMMON_DEBUG     0
 
 #define DEACTIVE            0x00
 #define PLAYBACK_ACTIVE     0x01
