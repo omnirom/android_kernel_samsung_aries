@@ -246,7 +246,6 @@ config MACH_ARIES
 	select S5PV210_POWER_DOMAIN
 	select S5P_DEV_CSIS0
 	select S5P_SETUP_MIPIPHY
-	select ARM_HAS_SG_CHAIN
 	help
 	  Machine support for Aries
 
@@ -269,7 +268,6 @@ config MACH_P1
 	select S5PV210_POWER_DOMAIN
 	select S5P_DEV_CSIS0
 	select S5P_SETUP_MIPIPHY
-	select ARM_HAS_SG_CHAIN
 	help
 	  Machine support for P1
 
