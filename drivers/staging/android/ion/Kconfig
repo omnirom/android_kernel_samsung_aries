@@ -33,3 +33,8 @@ config ION_TEGRA
 	help
 	  Choose this option if you wish to use ion on an nVidia Tegra.
 
+config ION_S5P
+	bool "Ion Memory Manager for S5PV210"
+	depends on ARCH_S5PV210 && ION
+	---help---
+	  Choose this option if you wish to use ion on Samsung S5PV210.
