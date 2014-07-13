@@ -39,7 +39,6 @@
 #include <asm/mach/map.h>
 #include <asm/setup.h>
 #include <asm/mach-types.h>
-#include <asm/system.h>
 
 #include <mach/map.h>
 #include <mach/regs-clock.h>
@@ -74,6 +73,7 @@
 #include <media/s5ka3dfx_platform.h>
 #endif
 
+#include <plat/system-reset.h>
 #include <plat/regs-serial.h>
 #include <plat/s5pv210.h>
 #include <plat/devs.h>

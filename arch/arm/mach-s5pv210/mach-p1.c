@@ -48,7 +48,6 @@
 #include <mach/sec_switch.h>
 #include <mach/adc.h>
 #include <mach/param.h>
-#include <mach/system.h>
 
 #include <mach/voltages.h>
 #include <linux/usb/gadget.h>
@@ -79,6 +78,7 @@
 #include <media/nm6xx_platform.h>
 #endif
 
+#include <plat/system-reset.h>
 #include <plat/regs-serial.h>
 #include <plat/s5pv210.h>
 #include <plat/devs.h>
