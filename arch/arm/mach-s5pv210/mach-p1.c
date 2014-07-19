@@ -366,9 +366,11 @@ static struct s3cfb_lcd lvds = {
 						 (CONFIG_FB_S3C_NUM_OVLY_WIN * \
 						  CONFIG_FB_S3C_NUM_BUF_OVLY_WIN)))
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (3600 * SZ_1K)
-#define  S5PV210_ION_MEMSIZE_SYSTEM (3600 * SZ_1K)
-#define  S5PV210_ION_MEMSIZE_SCONTIG (3600 * SZ_1K)
-#define  S5PV210_ION_MEMSIZE_CARVEOUT (8192 * SZ_1K)
+#define  S5P_MAX_VIDEO_BUFFERS	8
+#define  S5P_VIDEO_Y_SIZE	ALIGN(1280 * 720, PAGE_SIZE)
+#define  S5P_VIDEO_UV_SIZE	ALIGN(1280 * 360, PAGE_SIZE)
+#define  S5P_ION_CARVEOUT	\
+	S5P_MAX_VIDEO_BUFFERS * (S5P_VIDEO_Y_SIZE + S5P_VIDEO_UV_SIZE)
 
 static struct s5p_media_device p1_media_devs[] = {
 	[0] = {
@@ -414,25 +416,11 @@ static struct s5p_media_device p1_media_devs[] = {
 		.paddr = 0,
 	},
 #ifdef CONFIG_ION_S5P
-	[7] = {
-		.id = S5P_MDEV_ION_SYSTEM,
-		.name = "ion_system",
-		.bank = 1,
-		.memsize = S5PV210_ION_MEMSIZE_SYSTEM,
-		.paddr = 0,
-	},
-	[8] = {
-		.id = S5P_MDEV_ION_SCONTIG,
-		.name = "ion_system_contig",
-		.bank = 1,
-		.memsize = S5PV210_ION_MEMSIZE_SCONTIG,
-		.paddr = 0,
-	},
-	[9] = {
+	[6] = {
 		.id = S5P_MDEV_ION_CARVEOUT,
-		.name = "ion_carveout",
+		.name = "ion-carveout",
 		.bank = 1,
-		.memsize = S5PV210_ION_MEMSIZE_CARVEOUT,
+		.memsize = S5P_ION_CARVEOUT,
 		.paddr = 0,
 	},
 #endif
@@ -7155,25 +7143,20 @@ static struct platform_device p1_keyboard = {
 #endif
 
 #ifdef CONFIG_ION_S5P
-struct ion_platform_heap heaps[] = {
+struct ion_platform_heap p1_heaps[] = {
 	{
-		.type  = ION_HEAP_TYPE_SYSTEM,
-		.id    = ION_HEAP_TYPE_SYSTEM,
-		.name  = "ion_heap_system",
+		.id	    = ION_HEAP_TYPE_SYSTEM,
+		.type	= ION_HEAP_TYPE_SYSTEM,
+		.name	= "system",
 	},{
-		.type  = ION_HEAP_TYPE_SYSTEM_CONTIG,
-		.id    = ION_HEAP_TYPE_SYSTEM_CONTIG,
-		.name  = "ion_heap_system_contig",
-	},{
-		.type  = ION_HEAP_TYPE_CARVEOUT,
-		.id    = ION_HEAP_TYPE_CARVEOUT,
-		.name  = "ion_heap_carveout",
-	},
+		.id	    = ION_HEAP_TYPE_CARVEOUT,
+		.type	= ION_HEAP_TYPE_CARVEOUT,
+		.name	= "carveout",
+	}
 };
-
 static struct ion_platform_data ion_s5p_data = {
-	.nr = ARRAY_SIZE(heaps),
-	.heaps = heaps,
+	.nr = ARRAY_SIZE(p1_heaps),
+	.heaps = p1_heaps,
 };
 
 static struct platform_device ion_s5p_device = {
@@ -7186,22 +7169,10 @@ static struct platform_device ion_s5p_device = {
 
 static void __init ion_s5p_set_platdata(void)
 {
-	ion_s5p_data.heaps[0].base =
-		s5p_get_media_memory_bank(S5P_MDEV_ION_SYSTEM, 1);
-	ion_s5p_data.heaps[0].size =
-		s5p_get_media_memsize_bank(S5P_MDEV_ION_SYSTEM, 1);
-
 	ion_s5p_data.heaps[1].base =
-		s5p_get_media_memory_bank(S5P_MDEV_ION_SCONTIG, 1);
-	ion_s5p_data.heaps[1].size =
-		s5p_get_media_memsize_bank(S5P_MDEV_ION_SCONTIG, 1);
-
-	ion_s5p_data.heaps[2].base =
 		s5p_get_media_memory_bank(S5P_MDEV_ION_CARVEOUT, 1);
-	ion_s5p_data.heaps[2].size =
+	ion_s5p_data.heaps[1].size =
 		s5p_get_media_memsize_bank(S5P_MDEV_ION_CARVEOUT, 1);
-
-	ion_reserve(&ion_s5p_data);
 }
 #endif /* CONFIG_ION_S5P */
 
@@ -7593,6 +7564,10 @@ static void __init p1_machine_init(void)
 	/*initialise the gpio's*/
 	p1_init_gpio();
 
+#ifdef CONFIG_ION_S5P
+	ion_s5p_set_platdata();
+#endif
+
 	gpio_request(GPIO_TOUCH_EN, "touch en");
 
 	/* i2c */
@@ -7671,10 +7646,6 @@ static void __init p1_machine_init(void)
 #ifdef CONFIG_VIDEO_MFC50
 	/* mfc */
 	s3c_mfc_set_platdata(NULL);
-#endif
-
-#ifdef CONFIG_ION_S5P
-	ion_s5p_set_platdata();
 #endif
 
 #ifdef CONFIG_S3C_DEV_HSMMC
