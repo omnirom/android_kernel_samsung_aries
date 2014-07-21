@@ -98,7 +98,9 @@
 #include <linux/i2c/l3g4200d.h>
 #include <../../../drivers/input/misc/bma020.h>
 #include <../../../drivers/video/samsung/s3cfb.h>
+#ifdef CONFIG_SAMSUNG_JACK
 #include <linux/sec_jack.h>
+#endif
 #include <linux/power/max17042_battery.h>
 #include <linux/switch.h>
 
@@ -154,8 +156,11 @@ struct wifi_mem_prealloc {
 
 #endif
 
+#ifdef CONFIG_SAMSUNG_JACK
 static DEFINE_SPINLOCK(mic_bias_lock);
 static bool jack_mic_bias;
+#endif
+
 struct sec_battery_callbacks *callbacks;
 struct max17042_callbacks *max17042_cb;
 static enum cable_type_t set_cable_status;
@@ -2605,6 +2610,7 @@ static struct s3c_platform_jpeg jpeg_plat __initdata = {
 };
 #endif
 
+#ifdef CONFIG_SAMSUNG_JACK
 static void set_shared_mic_bias(void)
 {
 	gpio_set_value(GPIO_EAR_MICBIAS0_EN, jack_mic_bias);
@@ -2620,6 +2626,7 @@ static void sec_jack_set_micbias_state(bool on)
 	set_shared_mic_bias();
 	spin_unlock_irqrestore(&mic_bias_lock, flags);
 }
+#endif
 
 static struct i2c_board_info i2c_devs4[] __initdata = {
 	{
@@ -3051,6 +3058,7 @@ static struct platform_device sec_device_btsleep = {
 	.id	= -1,
 };
 
+#ifdef CONFIG_SAMSUNG_JACK
 static struct sec_jack_zone sec_jack_zones[] = {
 	{
 		/* adc == 0, unstable zone, default to 3pole if it stays
@@ -3157,6 +3165,7 @@ static void __init sec_jack_init(void)
 
 	printk("EAR_MICBIAS Init\n");
 }
+#endif
 
  /* touch screen device init */
 static void __init qt_touch_init(void)
@@ -7682,7 +7691,9 @@ static void __init p1_machine_init(void)
 
 	p1_init_wifi_mem();
 
+#ifdef CONFIG_SAMSUNG_JACK
 	sec_jack_init();
+#endif
 
 	qt_touch_init();
 
