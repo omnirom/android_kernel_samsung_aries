@@ -55,59 +55,49 @@ static int max8998_check_vdcin(void)
 static int max8998_charging_control(int en, int cable_status)
 {
 	struct max8998_chg_data *chg = max8998_chg;
+	struct i2c_client *i2c = chg->iodev->i2c;
 	int ret = 0;
+
+	pr_info("%s : conn=%d, cable_status=%d\n", __func__, en, cable_status);
 
 	if (!en) {
 		/* disable charging */
-		ret = max8998_update_reg(chg->iodev->i2c, MAX8998_REG_CHGR2,
+		ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2,
 			(1 << MAX8998_SHIFT_CHGEN), MAX8998_MASK_CHGEN);
 		if (ret < 0)
 			goto err;
 
-		pr_debug("%s : charging disabled", __func__);
+		pr_info("%s : charging disabled\n", __func__);
 	} else {
 		/* enable charging */
 		if (cable_status == CABLE_TYPE_AC) {
 			/* ac */
-			ret = max8998_update_reg(chg->iodev->i2c, MAX8998_REG_CHGR1,
-				(2 << MAX8998_SHIFT_TOPOFF), MAX8998_MASK_TOPOFF);
+			ret = max8998_write_reg(i2c, MAX8998_REG_CHGR1,
+				(2 << MAX8998_SHIFT_TOPOFF) |
+				(5 << MAX8998_SHIFT_ICHG) |
+				(2 << MAX8998_SHIFT_ESAFEOUT));
+
 			if (ret < 0)
 				goto err;
 
-			ret = max8998_update_reg(chg->iodev->i2c, MAX8998_REG_CHGR1,
-				(5 << MAX8998_SHIFT_ICHG), MAX8998_MASK_ICHG);
-			if (ret < 0)
-				goto err;
-
-			ret = max8998_update_reg(chg->iodev->i2c, MAX8998_REG_CHGR2,
-				(2 << MAX8998_SHIFT_ESAFEOUT), MAX8998_MASK_ESAFEOUT);
-			if (ret < 0)
-				goto err;
-
-			pr_debug("%s : TA charging enabled", __func__);
+			pr_info("%s : TA charging enabled\n", __func__);
 
 		} else {
 			/* usb */
-			ret = max8998_update_reg(chg->iodev->i2c, MAX8998_REG_CHGR1,
-				(6 << MAX8998_SHIFT_TOPOFF), MAX8998_MASK_TOPOFF);
+			ret = max8998_write_reg(i2c, MAX8998_REG_CHGR1,
+				(6 << MAX8998_SHIFT_TOPOFF) |
+				(2 << MAX8998_SHIFT_ICHG) |
+				(3 << MAX8998_SHIFT_ESAFEOUT));
+
 			if (ret < 0)
 				goto err;
 
-			ret = max8998_update_reg(chg->iodev->i2c, MAX8998_REG_CHGR1,
-				(2 << MAX8998_SHIFT_ICHG), MAX8998_MASK_ICHG);
-			if (ret < 0)
-				goto err;
-
-			ret = max8998_update_reg(chg->iodev->i2c, MAX8998_REG_CHGR2,
-				(3 << MAX8998_SHIFT_ESAFEOUT), MAX8998_MASK_ESAFEOUT);
-			if (ret < 0)
-				goto err;
-
-			pr_debug("%s : USB charging enabled", __func__);
+			pr_info("%s : USB charging enabled\n", __func__);
 		}
 
-		ret = max8998_update_reg(chg->iodev->i2c, MAX8998_REG_CHGR2,
-			(0 << MAX8998_SHIFT_CHGEN), MAX8998_MASK_CHGEN);
+		ret = max8998_write_reg(i2c, MAX8998_REG_CHGR2,
+			(0 << MAX8998_SHIFT_CHGEN));
+
 		if (ret < 0)
 			goto err;
 	}
@@ -124,6 +114,7 @@ static __devinit int max8998_charger_probe(struct platform_device *pdev)
 	struct max8998_dev *iodev = dev_get_drvdata(pdev->dev.parent);
 	struct max8998_platform_data *pdata = dev_get_platdata(iodev->dev);
 	struct max8998_chg_data *chg;
+	struct i2c_client *i2c = iodev->i2c;
 	int ret = 0;
 
 	pr_info("%s : MAX8998 Charger Driver Loading\n", __func__);
@@ -144,22 +135,22 @@ static __devinit int max8998_charger_probe(struct platform_device *pdev)
 		goto err_pdata;
 	}
 
-	ret = max8998_update_reg(iodev->i2c, MAX8998_REG_CHGR1, /* disable */
+	ret = max8998_update_reg(i2c, MAX8998_REG_CHGR1, /* disable */
 		(0x3 << MAX8998_SHIFT_RSTR), MAX8998_MASK_RSTR);
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_update_reg(iodev->i2c, MAX8998_REG_CHGR2, /* 6 Hr */
+	ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2, /* 6 Hr */
 		(0x2 << MAX8998_SHIFT_FT), MAX8998_MASK_FT);
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_update_reg(iodev->i2c, MAX8998_REG_CHGR2, /* 4.2V */
+	ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2, /* 4.2V */
 		(0x0 << MAX8998_SHIFT_BATTSL), MAX8998_MASK_BATTSL);
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_update_reg(iodev->i2c, MAX8998_REG_CHGR2, /* 105c */
+	ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2, /* 105c */
 		(0x0 << MAX8998_SHIFT_TMP), MAX8998_MASK_TMP);
 	if (ret < 0)
 		goto err_kfree;
@@ -214,5 +205,5 @@ module_init(max8998_charger_init);
 module_exit(max8998_charger_exit);
 
 MODULE_AUTHOR("Ikkeun Kim <iks.kim@samsung.com>");
-MODULE_DESCRIPTION("max8998 charger driver for P1");
+MODULE_DESCRIPTION("max8998 charger driver");
 MODULE_LICENSE("GPL");
