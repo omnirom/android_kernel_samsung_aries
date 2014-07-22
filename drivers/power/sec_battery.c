@@ -899,8 +899,12 @@ static int sec_cable_status_update(struct chg_data *chg)
 update:
 	if (chg->bat_info.charging_status == POWER_SUPPLY_STATUS_FULL ||
 		chg->bat_info.charging_status == POWER_SUPPLY_STATUS_CHARGING) {
-		/* Update DISCHARGING status in case of USB cable or Improper charger */
-		if (chg->cable_status==CABLE_TYPE_USB || chg->bat_info.batt_improper_ta) {
+		// Update DISCHARGING status in case of USB cable or Improper charger
+		// Commented out: force charging status if USB cable is connected
+		// if (chg->cable_status==CABLE_TYPE_USB || chg->bat_info.batt_improper_ta) {
+		if (chg->bat_info.batt_improper_ta) {
+			pr_info("%s : the cable is an improper TA then it will "
+					"not get charging status.\n", __func__);
 			chg->bat_info.charging_status = POWER_SUPPLY_STATUS_DISCHARGING;
 		}
 	}
