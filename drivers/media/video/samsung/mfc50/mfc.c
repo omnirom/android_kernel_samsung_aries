@@ -18,6 +18,7 @@
  *   2009.11.04 - remove mfc_common.[ch]
  *                seperate buffer alloc & set (Key Young, Park)
  *   2009.11.24 - add state check when decoding & encoding (Key Young, Park)
+ *   2014.07.22 - fix gcc warnings (Humberto Borba)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -72,6 +73,7 @@ static int mfc_open(struct inode *inode, struct file *file)
 {
 	struct mfc_inst_ctx *mfc_ctx;
 	int ret;
+	int mfc_hw = 0;
 
 	mutex_lock(&mfc_mutex);
 
@@ -90,8 +92,8 @@ static int mfc_open(struct inode *inode, struct file *file)
 		clk_enable(mfc_sclk);
 
 		mfc_load_firmware(mfc_fw_info->data, mfc_fw_info->size);
-
-		if (mfc_init_hw() != true) {
+		mfc_hw = mfc_init_hw();
+		if (!mfc_hw) {
 			clk_disable(mfc_sclk);
 			ret =  -ENODEV;
 			goto err_regulator;
@@ -689,7 +691,7 @@ err_irq_req:
 err_irq_res:
 	iounmap(mfc_sfr_base_vaddr);
 err_mem_map:
-	release_mem_region(mfc_mem, size);
+	release_mem_region(mfc_mem->start, size);
 err_mem_req:
 probe_out:
 	dev_err(&pdev->dev, "not found (%d).\n", ret);
