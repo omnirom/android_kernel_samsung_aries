@@ -72,11 +72,18 @@ static int max8998_charging_control(int en, int cable_status)
 		/* enable charging */
 		if (cable_status == CABLE_TYPE_AC) {
 			/* ac */
-			ret = max8998_write_reg(i2c, MAX8998_REG_CHGR1,
-				(2 << MAX8998_SHIFT_TOPOFF) |
-				(5 << MAX8998_SHIFT_ICHG) |
-				(2 << MAX8998_SHIFT_ESAFEOUT));
+			ret = max8998_update_reg(i2c, MAX8998_REG_CHGR1,
+				(2 << MAX8998_SHIFT_TOPOFF), MAX8998_MASK_TOPOFF);
+			if (ret < 0)
+				goto err;
 
+			ret = max8998_update_reg(i2c, MAX8998_REG_CHGR1,
+				(5 << MAX8998_SHIFT_ICHG), MAX8998_MASK_ICHG);
+			if (ret < 0)
+				goto err;
+
+			ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2,
+				(2 << MAX8998_SHIFT_ESAFEOUT), MAX8998_MASK_ESAFEOUT);
 			if (ret < 0)
 				goto err;
 
@@ -84,20 +91,26 @@ static int max8998_charging_control(int en, int cable_status)
 
 		} else {
 			/* usb */
-			ret = max8998_write_reg(i2c, MAX8998_REG_CHGR1,
-				(6 << MAX8998_SHIFT_TOPOFF) |
-				(2 << MAX8998_SHIFT_ICHG) |
-				(3 << MAX8998_SHIFT_ESAFEOUT));
-
+			ret = max8998_update_reg(i2c, MAX8998_REG_CHGR1,
+				(6 << MAX8998_SHIFT_TOPOFF), MAX8998_MASK_TOPOFF);
 			if (ret < 0)
 				goto err;
 
-			pr_info("%s : USB charging enabled\n", __func__);
+			ret = max8998_update_reg(i2c, MAX8998_REG_CHGR1,
+				(2 << MAX8998_SHIFT_ICHG), MAX8998_MASK_ICHG);
+			if (ret < 0)
+				goto err;
+
+			ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2,
+				(3 << MAX8998_SHIFT_ESAFEOUT), MAX8998_MASK_ESAFEOUT);
+			if (ret < 0)
+				goto err;
+
+			pr_debug("%s : USB charging enabled", __func__);
 		}
 
-		ret = max8998_write_reg(i2c, MAX8998_REG_CHGR2,
-			(0 << MAX8998_SHIFT_CHGEN));
-
+		ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2,
+			(0 << MAX8998_SHIFT_CHGEN), MAX8998_MASK_CHGEN);
 		if (ret < 0)
 			goto err;
 	}
