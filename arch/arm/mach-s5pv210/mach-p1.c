@@ -3208,7 +3208,7 @@ static void __init nmi_i2s_cfg_gpio_init(void)
 	s3c_gpio_setpull(GPIO_I2S_LRCLK_18V, S3C_GPIO_PULL_NONE);
 	s3c_gpio_setpull(GPIO_I2S_DATA_18V, S3C_GPIO_PULL_NONE);
 }
-#elif defined (CONFIG_SAMSUNG_P1N)
+#elif defined (CONFIG_SAMSUNG_P1LN)
 static void __init nmi_pwr_disable(void)
 {
 	int err = 0;
@@ -7712,7 +7712,7 @@ static void __init p1_machine_init(void)
 
 #if defined (CONFIG_VIDEO_NM6XX)
 	nmi_i2s_cfg_gpio_init();
-#elif defined (CONFIG_SAMSUNG_P1N)
+#elif defined (CONFIG_SAMSUNG_P1LN)
 	nmi_pwr_disable();  // Disable the ISDBT PWR : Only Latin HW 0.3
 #endif
 
