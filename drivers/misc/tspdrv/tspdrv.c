@@ -31,9 +31,7 @@
 #ifndef __KERNEL__
 #define __KERNEL__
 #endif
-#ifndef MODULE
-#define MODULE
-#endif
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/timer.h>
@@ -41,7 +39,7 @@
 #include <linux/version.h>
 #include <linux/miscdevice.h>
 #include <linux/platform_device.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/hrtimer.h>
 #include <linux/timed_output.h>
 #include <linux/delay.h>
@@ -642,3 +640,6 @@ static void platform_release(struct device *dev)
 {
     DbgOut((KERN_DEBUG "tspdrv: platform_release.\n"));
 }
+
+late_initcall(init_module);
+module_exit(cleanup_module);
