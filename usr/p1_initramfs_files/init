@@ -29,6 +29,9 @@ if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmd
     load_image=/stage1/recovery.cpio
     busybox echo "loading recovery.cpio" >>boot.txt
 
+    # disable lpm
+    busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
+
 elif ! busybox test -e /system/build.prop ; then
 
     # emergency boot
@@ -56,6 +59,9 @@ elif ! busybox test -e /system/build.prop ; then
     busybox echo "loading recovery.cpio" >>boot.txt
     load_image=/stage1/recovery.cpio
 
+    # disable lpm
+    busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
+
     # umount sdcard
     busybox umount /sdcard
 
@@ -70,12 +76,6 @@ busybox umount /system
 busybox rmdir /sdcard
 
 busybox cpio -ui < ${load_image}
-
-if busybox grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
-    # low power mode
-    busybox cp lpm.rc init.rc
-    busybox rm -fr init.p1.rc
-fi
 
 HW=$(busybox cat /proc/cpuinfo | \
     busybox grep Hardware | \
@@ -94,6 +94,13 @@ if [ "$HW" != "p1" ] ; then
 
     busybox ln -s /fstab.p1 /fstab.$HW
     busybox ln -s /ueventd.p1.rc /ueventd.$HW.rc
+fi
+
+if busybox grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
+    # low power mode
+    busybox cp lpm.rc init.rc
+    busybox rm -fr init.p1ln.rc
+    busybox rm -fr init.p1.rc
 fi
 
 busybox umount /sys
