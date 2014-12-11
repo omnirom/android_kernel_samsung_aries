@@ -3,14 +3,14 @@ export _PATH="$PATH"
 export PATH=/stage1
 
 busybox cd /
-busybox date >>boot.txt
-exec >>boot.txt 2>&1
+busybox date >> boot.txt
+exec >> boot.txt 2>&1
 busybox rm init
 busybox mount -t proc proc /proc
 busybox mount -t sysfs sysfs /sys
 
 while ! busybox test -d /sys/dev/block/179:0 ; do
-    busybox echo "waiting for internal mmc" >>boot.txt
+    busybox echo "waiting for internal mmc" >> boot.txt
     busybox sleep 1
 done
 
@@ -24,10 +24,10 @@ load_image=/stage1/boot.cpio
 
 if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmdline ; then
     # recovery boot
-    busybox echo 'RECOVERY BOOT' >>boot.txt
+    busybox echo 'RECOVERY BOOT' >> boot.txt
     busybox rm -fr /cache/.startrecovery
     load_image=/stage1/recovery.cpio
-    busybox echo "loading recovery.cpio" >>boot.txt
+    busybox echo "loading recovery.cpio" >> boot.txt
 
     # disable lpm
     busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
@@ -35,7 +35,7 @@ if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmd
 elif ! busybox test -e /system/build.prop ; then
 
     # emergency boot
-    busybox echo "EMERGENCY BOOT" >>boot.txt
+    busybox echo "EMERGENCY BOOT" >> boot.txt
     busybox umount /cache
     erase_image cache
     busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
@@ -48,15 +48,15 @@ elif ! busybox test -e /system/build.prop ; then
     busybox sleep 1
 
     if busybox test -e /sdcard/omni.cfg ; then
-        busybox echo "installing: `busybox cat /sdcard/omni.cfg`" >>boot.txt
-        busybox echo "creating recovery command" >>boot.txt
+        busybox echo "installing: `busybox cat /sdcard/omni.cfg`" >> boot.txt
+        busybox echo "creating recovery command" >> boot.txt
         busybox touch /cache/recovery/command
         busybox echo "--update_package=`busybox cat /sdcard/omni.cfg`" > /cache/recovery/command
     else
-        busybox echo "omni.cfg not found" >>boot.txt
+        busybox echo "omni.cfg not found" >> boot.txt
     fi
 
-    busybox echo "loading recovery.cpio" >>boot.txt
+    busybox echo "loading recovery.cpio" >> boot.txt
     load_image=/stage1/recovery.cpio
 
     # disable lpm
@@ -67,8 +67,8 @@ elif ! busybox test -e /system/build.prop ; then
 
 else
     # android boot
-    busybox echo "ANDROID BOOT" >>boot.txt
-    busybox echo "loading boot.cpio" >>boot.txt
+    busybox echo "ANDROID BOOT" >> boot.txt
+    busybox echo "loading boot.cpio" >> boot.txt
 fi
 
 busybox umount /cache
@@ -105,7 +105,7 @@ fi
 
 busybox umount /sys
 busybox umount /proc
-busybox date >>boot.txt
+busybox date >> boot.txt
 busybox rm -fr /stage1 /dev/*
 export PATH="${_PATH}"
 exec /init
