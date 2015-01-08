@@ -1312,11 +1312,11 @@ static const int touch_keypad_code[] = {
 	KEY_MENU,
 	KEY_BACK,
 	/* Unofficial support for the Telus Fascinate - same internals as I9000 */
-	KEY_HOME,
+	KEY_HOMEPAGE,
 	KEY_SEARCH
 #else
 	KEY_MENU,
-	KEY_HOME,
+	KEY_HOMEPAGE,
 	KEY_BACK,
 	KEY_SEARCH
 #endif
@@ -1341,7 +1341,7 @@ static struct gpio_event_direct_entry aries_keypad_key_map[] = {
 #if defined (CONFIG_SAMSUNG_GALAXYS) || defined (CONFIG_SAMSUNG_GALAXYSB)
 	{
 		.gpio	= S5PV210_GPH3(5),
-		.code	= KEY_HOME,
+		.code	= KEY_HOMEPAGE,
 	},
 #endif
 #ifdef CONFIG_SAMSUNG_VIBRANT
