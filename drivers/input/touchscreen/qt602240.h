@@ -76,7 +76,7 @@
 static const int tsp_keycodes[NUMOFKEYS] ={
 
         KEY_MENU,
-        KEY_HOME,
+        KEY_HOMEPAGE,
         KEY_BACK,
         KEY_SEARCH
 };
