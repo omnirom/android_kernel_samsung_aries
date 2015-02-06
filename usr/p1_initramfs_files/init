@@ -105,13 +105,6 @@ if [ "$HW" != "p1" ] ; then
     busybox ln -s /ueventd.p1.rc /ueventd.$HW.rc
 fi
 
-if busybox grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
-    # low power mode
-    busybox cp lpm.rc init.rc
-    busybox rm -fr init.p1ln.rc
-    busybox rm -fr init.p1.rc
-fi
-
 busybox umount /sys
 busybox umount /proc
 busybox date >> boot.txt
