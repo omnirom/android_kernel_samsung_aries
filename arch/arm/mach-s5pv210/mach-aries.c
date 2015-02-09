@@ -5338,6 +5338,11 @@ static void __init aries_inject_cmdline(void) {
 		size += sprintf(new_command_line + size, " bootmode=%d", bootmode);
 	}
 
+	// LPM charging mode
+	if (readl(S5P_INFORM5)) {
+		size += sprintf(new_command_line + size, " androidboot.mode=charger");
+	}
+
 	saved_command_line = new_command_line;
 }
 
