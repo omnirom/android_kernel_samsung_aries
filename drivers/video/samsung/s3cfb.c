@@ -509,6 +509,15 @@ static int s3cfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *fb)
 	struct s3cfb_global *fbdev =
 		platform_get_drvdata(to_platform_device(fb->device));
 
+#if defined(CONFIG_MACH_ARIES) || defined(CONFIG_MACH_P1)
+	if (readl(S5P_INFORM5)) {
+		/* support LPM (off charging mode) */
+		s3cfb_check_var(var, fb);
+		s3cfb_set_par(fb);
+		s3cfb_set_window(fbdev, win->id, 1);
+	}
+#endif
+
 	if (var->yoffset + var->yres > var->yres_virtual) {
 		dev_err(fbdev->dev, "invalid yoffset value\n");
 		return -EINVAL;
