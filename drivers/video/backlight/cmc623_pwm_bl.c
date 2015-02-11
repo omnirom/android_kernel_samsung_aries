@@ -391,6 +391,15 @@ static struct backlight_ops cmc623_pwm_ops = {
 	.check_fb = cmc623_pwm_check_fb,
 };
 
+// mid brightness for lpm charging mode
+void cmc623_pwm_set_brightness_lpm(void)
+{
+	mutex_lock(&cmc623_pwm_mutex);
+	cmc623_pwm_apply_brightness(bl_pdev, MID_BRIGHTNESS_LEVEL);
+	mutex_unlock(&cmc623_pwm_mutex);
+}
+EXPORT_SYMBOL(cmc623_pwm_set_brightness_lpm);
+
 //for measuring luminance
 void cmc623_pwm_set_brightness(int brightness)
 {

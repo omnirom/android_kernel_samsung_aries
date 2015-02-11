@@ -66,6 +66,7 @@ static int show_progress = 1;
 
 #if defined(CONFIG_MACH_P1) || defined(CONFIG_MACH_HERRING)
 extern unsigned int HWREV;
+extern cmc623_pwm_set_brightness_lpm(void);
 #endif
 
 #if (CONFIG_FB_S3C_NUM_OVLY_WIN >= CONFIG_FB_S3C_DEFAULT_WINDOW)
@@ -515,6 +516,9 @@ static int s3cfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *fb)
 		s3cfb_check_var(var, fb);
 		s3cfb_set_par(fb);
 		s3cfb_set_window(fbdev, win->id, 1);
+#if defined(CONFIG_MACH_P1)
+		cmc623_pwm_set_brightness_lpm();
+#endif
 	}
 #endif
 
