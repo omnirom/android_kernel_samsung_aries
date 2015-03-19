@@ -77,6 +77,11 @@ busybox rmdir /sdcard
 
 busybox cpio -ui < $image
 
+if busybox grep -q mode=charger /proc/cmdline ; then
+	busybox cp /sbin/device_healthd /sbin/healthd
+	busybox chmod 775 /sbin/healthd
+fi
+
 busybox umount /sys
 busybox umount /proc
 busybox date >>boot.txt
