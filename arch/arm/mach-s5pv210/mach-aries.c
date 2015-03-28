@@ -5332,15 +5332,16 @@ static void __init aries_inject_cmdline(void) {
 	size += sprintf(new_command_line + size, " androidboot.serialno=%08X%08X",
 				system_serial_high, system_serial_low);
 
-	// Only write bootmode when less than 10 to prevent confusion with watchdog
-	// reboot (0xee = 238)
-	if (bootmode < 10) {
-		size += sprintf(new_command_line + size, " bootmode=%d", bootmode);
-	}
-
 	// LPM charging mode
 	if (readl(S5P_INFORM5)) {
 		size += sprintf(new_command_line + size, " androidboot.mode=charger");
+	} else {
+		// Only write bootmode when less than 10 to prevent confusion with watchdog
+		// reboot (0xee = 238)
+		if (bootmode < 10) {
+			size += sprintf(new_command_line + size, " bootmode=%d", bootmode);
+		}
+		size += sprintf(new_command_line + size, " androidboot.selinux=permissive");
 	}
 
 	saved_command_line = new_command_line;
