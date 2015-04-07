@@ -18,7 +18,7 @@ done
 /lvm/sbin/lvm vgchange -aly --ignorelockingfailure
 
 busybox mount -t ext4 /dev/lvpool/system /system
-busybox mount -t yaffs2 /dev/block/mtdblock2 /cache
+busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
 
 load_image=/stage1/boot.cpio
 
@@ -38,19 +38,14 @@ elif ! busybox test -e /system/build.prop ; then
     busybox echo "EMERGENCY BOOT" >> boot.txt
     busybox umount /cache
     erase_image cache
-    busybox mount -t yaffs2 /dev/block/mtdblock2 /cache
+    busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
 
     if ! busybox test -e /cache/recovery ; then
         busybox mkdir /cache/recovery
     fi
 
-    if busybox test -e /dev/lvpool/userdata ; then
-        busybox mount -t ext4 /dev/lvpool/userdata /data
-        busybox rm -fr /sdcard
-        busybox ln -s /data/media /sdcard
-    else
-        busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard
-    fi
+    busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard
+    busybox sleep 1
 
     if busybox test -e /sdcard/omni.cfg ; then
         busybox echo "installing: `busybox cat /sdcard/omni.cfg`" >> boot.txt
@@ -68,12 +63,8 @@ elif ! busybox test -e /system/build.prop ; then
     busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
 
     # umount sdcard
-    if ! busybox test -e /dev/lvpool/userdata ; then
-        busybox umount /sdcard
-        busybox rmdir /sdcard
-    else
-        busybox umount /data
-    fi
+    busybox umount /sdcard
+
 else
     # android boot
     busybox echo "ANDROID BOOT" >> boot.txt
