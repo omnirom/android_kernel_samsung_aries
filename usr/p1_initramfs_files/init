@@ -77,6 +77,10 @@ busybox rmdir /sdcard
 
 busybox cpio -ui < ${load_image}
 
+if busybox grep -q androidboot.mode=charger /proc/cmdline ; then
+    busybox cp /sbin/device_healthd /sbin/healthd
+fi
+
 HW=$(busybox cat /proc/cpuinfo | \
     busybox grep Hardware | \
     busybox sed s/Hardware// | \

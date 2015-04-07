@@ -7548,20 +7548,22 @@ static void __init p1_inject_cmdline(void) {
 	int size;
 
 	size = strlen(boot_command_line);
-	new_command_line = kmalloc(size + 40 + 11, GFP_KERNEL);
+	new_command_line = kmalloc(size + 80 + 11, GFP_KERNEL);
 	strcpy(new_command_line, saved_command_line);
 	size += sprintf(new_command_line + size, " androidboot.serialno=%08X%08X",
 				system_serial_high, system_serial_low);
 
-	// Only write bootmode when less than 10 to prevent confusion with watchdog
-	// reboot (0xee = 238)
-	if (bootmode < 10) {
-		size += sprintf(new_command_line + size, " bootmode=%d", bootmode);
-	}
+	size += sprintf(new_command_line + size, " androidboot.selinux=permissive");
 
 	// LPM charging mode
 	if (readl(S5P_INFORM5)) {
 		size += sprintf(new_command_line + size, " androidboot.mode=charger");
+	} else {
+		// Only write bootmode when less than 10 to prevent confusion with watchdog
+		// reboot (0xee = 238)
+		if (bootmode < 10) {
+			size += sprintf(new_command_line + size, " bootmode=%d", bootmode);
+		}
 	}
 
 	saved_command_line = new_command_line;
