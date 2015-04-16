@@ -36,7 +36,7 @@ obj-$(CONFIG_MACH_HERRING)	+= herring-touchkey-led.o
 
 obj-$(CONFIG_MACH_HERRING)	+= dev-herring-phone.o
 
-obj-$(CONFIG_MACH_ARIES)	+= mach-aries.o aries-rfkill.o
+obj-$(CONFIG_MACH_ARIES)	+= mach-aries.o aries-rfkill.o bigmem.o
 obj-$(CONFIG_MACH_ARIES)	+= aries-vibrator.o
 obj-$(CONFIG_MACH_ARIES)	+= aries-btlpm.o
 obj-$(CONFIG_MACH_ARIES)	+= aries-watchdog.o
@@ -47,7 +47,7 @@ obj-$(CONFIG_PHONE_ARIES_CDMA)	+= dev-s1-phone.o
 obj-$(CONFIG_PHONE_ARIES_CDMA)	+= level.o
 obj-$(CONFIG_PHONE_CRESPO)	+= dev-aries-phone.o
 
-obj-$(CONFIG_MACH_P1)		+= mach-p1.o p1-rfkill.o
+obj-$(CONFIG_MACH_P1)		+= mach-p1.o p1-rfkill.o bigmem.o
 obj-$(CONFIG_MACH_P1)		+= p1-watchdog.o
 obj-$(CONFIG_MACH_P1)		+= dev-p1-phone.o
 obj-$(CONFIG_MACH_P1) 		+= level.o

@@ -118,6 +118,9 @@
 
 extern void s3c_setup_uart_cfg_gpio(unsigned char port);
 
+bool bigmem;
+EXPORT_SYMBOL(bigmem);
+
 struct class *sec_class;
 EXPORT_SYMBOL(sec_class);
 
@@ -185,9 +188,16 @@ static int p1_notifier_call(struct notifier_block *this,
 
 	if ((code == SYS_RESTART) && _cmd) {
 		if (!strcmp((char *)_cmd, "recovery"))
-			mode = 2; // It's not REBOOT_MODE_RECOVERY, blame Samsung
-		else
-			mode = REBOOT_MODE_NONE;
+			if (bigmem)
+				mode = 9;
+			else
+				mode = 2; // It's not REBOOT_MODE_RECOVERY, blame Samsung
+		else {
+			if (bigmem)
+				mode = 7;
+			else
+				mode = REBOOT_MODE_NONE;
+		}
 	}
 	__raw_writel(mode, S5P_INFORM6);
 
@@ -360,9 +370,11 @@ static struct s3cfb_lcd lvds = {
 };
 
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (12288 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0_BM (5000 * SZ_1K)
 // Disabled to save memory (we can't find where it's used)
 //#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1 (8192 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2 (12288 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2_BM (5000 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0 (14336 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1 (21504 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMD (S5PV210_LCD_WIDTH * \
@@ -7345,12 +7357,26 @@ static struct platform_device *p1_devices[] __initdata = {
 unsigned int HWREV;
 EXPORT_SYMBOL(HWREV);
 
+static void check_bigmem(void) {
+	int bootmode = __raw_readl(S5P_INFORM6);
+	if ((bootmode == 7) || (bootmode == 9)) {
+		bigmem = true;
+		p1_media_devs[2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0_BM;
+		p1_media_devs[3].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2_BM;
+	} else {
+		bigmem = false;
+		p1_media_devs[2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0;
+		p1_media_devs[3].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2;
+	}
+}
+
 static void __init p1_map_io(void)
 {
 	s5p_init_io(NULL, 0, S5P_VA_CHIPID);
 	s3c24xx_init_clocks(24000000);
 	s5pv210_gpiolib_init();
 	s3c24xx_init_uarts(p1_uartcfgs, ARRAY_SIZE(p1_uartcfgs));
+	check_bigmem();
 	s5p_reserve_bootmem(p1_media_devs, ARRAY_SIZE(p1_media_devs), S5P_RANGE_MFC);
 #ifdef CONFIG_MTD_ONENAND
 	s5p_device_onenand.name = "s5pc110-onenand";
